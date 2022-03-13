@@ -1,11 +1,12 @@
 """Config flow for Air Touch 3."""
+from airtouch3 import AirTouch3
+from airtouch3 import AT3CommsStatus
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_entry_flow
 from homeassistant.const import CONF_HOST
-
-from airtouch3 import AirTouch3
-from airtouch3 import AT3CommsStatus
 
 from .const import DOMAIN
 
@@ -28,7 +29,7 @@ class AirtouchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._async_abort_entries_match({CONF_HOST: host})
 
         at3 = AirTouch3(host)
-        at3.update_status()
+        at3.UpdateStatus()
         airtouch_has_groups = bool(
             at3.comms_status == AT3CommsStatus.OK and len(at3.groups) > 0
         )
@@ -44,7 +45,7 @@ class AirtouchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         return self.async_create_entry(
-            title="AirTouch 3",
+            title=user_input[CONF_HOST],
             data={
                 CONF_HOST: user_input[CONF_HOST],
             },

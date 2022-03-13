@@ -17,17 +17,17 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.FAN]
+PLATFORMS: list[Platform] = [Platform.CLIMATE]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Air Touch 3 from a config entry."""
-    # Store an API object for your platforms to access
+    # TODO Store an API object for your platforms to access
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
     hass.data.setdefault(DOMAIN, {})
     host = entry.data[CONF_HOST]
     at3 = AirTouch3(host)
-    success = at3.update_status()
+    success = at3.UpdateStatus()
     if not success:
         raise ConfigEntryNotReady
     coordinator = AT3DataUpdateCoordinator(hass, at3)
@@ -52,7 +52,7 @@ class AT3DataUpdateCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, at3):
         """Initialize global Airtouch data updater."""
-        self.at3: AirTouch3 = at3
+        self.at3 = at3
 
         super().__init__(
             hass,
@@ -63,48 +63,30 @@ class AT3DataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from Airtouch3."""
-        self.at3.update_status()
+        self.at3.UpdateStatus()
+        self.at3.PrintStatus()
         if self.at3.comms_status != AT3CommsStatus.OK:
             raise UpdateFailed("Airtouch connection issue")
-
-        data = {
-            "name": self.at3.name,
-            "id": self.at3.id,
-            "ac_units": {
-                ac.number: {
-                    "name": ac.name,
+        return {
+            "acs": [
+                {
                     "number": ac.number,
-                    "brand": ac.brand,
-                    "fan_speed": ac.fan_speed,
-                    "has_error": ac.has_error,
+                    "name": ac.name,
                     "is_on": ac.is_on,
                     "mode": ac.mode,
                     "temperature": ac.temperature,
-                    "temperature_sp": ac.temperature_sp,
                 }
-                for ac in self.at3.ac_units.values()
-            },
-            "groups": {
-                gr.number: {
-                    "name": gr.name,
-                    "number": gr.number,
-                    "is_on": gr.is_on,
-                    "mode": gr.mode,
-                    "open_percent": gr.open_percent,
-                    "temperature": gr.temperature,
-                    "temperature_sp": gr.temperature_sp,
+                for ac in self.at3.acUnits.values()
+            ],
+            "groups": [
+                {
+                    "number": group.number,
+                    "name": group.name,
+                    "is_on": group.is_on,
+                    "mode": group.mode,
+                    "percent": group.open_percent,
+                    "temperature": group.temperature,
                 }
-                for gr in self.at3.groups.values()
-            },
-            "sensors": {
-                se.name: {
-                    "name": se.name,
-                    "temperature": se.temperature,
-                    "available": se.available,
-                    "low_battery": se.low_battery,
-                }
-                for se in self.at3.sensors.values()
-            },
+                for group in self.at3.groups.values()
+            ],
         }
-
-        return data
