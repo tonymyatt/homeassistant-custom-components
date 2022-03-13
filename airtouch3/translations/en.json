@@ -1,0 +1,16 @@
+{
+    "config": {
+      "step": {
+        "user": {
+          "title": "Setup your AirTouch 3 connection details.",
+          "data": {
+            "host": "Host IP"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Count not connect to AirTouch 3",
+        "no_units": "Could not find any AirTouch 3 Groups."
+      }
+    }
+  }

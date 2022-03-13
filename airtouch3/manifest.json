@@ -1,0 +1,18 @@
+{
+  "domain": "airtouch3",
+  "name": "AirTouch 3",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/airtouch3",
+  "requirements": [
+    "airtouch3==0.6"
+  ],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@tonymyatt"
+  ],
+  "iot_class": "local_polling",
+  "version": "0.0.3"
+}
