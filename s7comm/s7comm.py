@@ -3,11 +3,13 @@ from typing import Dict
 
 import snap7
 
+
 class S7Addr:
     type: snap7.types.WordLen
     db: int
     byte: int
     bit: int
+
 
 class S7Comm:
 

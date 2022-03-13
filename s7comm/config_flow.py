@@ -9,7 +9,6 @@ from .s7comm import S7Comm
 
 DATA_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
 
-
 class S7CommConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle an S7Comm config flow."""
 
