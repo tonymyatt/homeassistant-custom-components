@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from airtouch3 import AirTouch3
-from airtouch3 import AT3CommsStatus
+from airtouch3 import AT3CommsStatus, AT3Command, AT3AcFanSpeed, AT3AcMode
 
 from homeassistant.components.climate import SCAN_INTERVAL
 from homeassistant.config_entries import ConfigEntry
@@ -50,6 +50,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class AT3DataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Airtouch3 data."""
 
+    CMD = "Command"
+    IDX = "Index"
+    FAN = "Fan"
+    MODE = "Mode"
+    CMD_AC_TOGGLE = "AT3AcUnit.toggle"
+    CMD_AC_TEMP_INC = "AT3AcUnit.temperature_inc"
+    CMD_AC_TEMP_DEC = "AT3AcUnit.temperature_dec"
+    CMD_AC_SET_FAN = "AT3AcUnit.set_fan_speed"
+    CMD_AC_SET_MODE = "AT3AcUnit.set_mode"
+    CMD_GRP_TOGGLE = "AT3Group.toggle"
+    CMD_GRP_TOGGLE_MODE = "AT3Group.toggle_mode"
+    CMD_GRP_POSN_INC = "AT3Group.position_inc"
+    CMD_GRP_POSN_DEC = "AT3Group.position_dec"
+
     def __init__(self, hass, at3):
         """Initialize global Airtouch data updater."""
         self.at3: AirTouch3 = at3
@@ -61,11 +75,46 @@ class AT3DataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=SCAN_INTERVAL,
         )
 
+    def issue_command(self, cmd, **kwargs):
+        print(f"Issuing command {cmd} with args {kwargs}")
+        cmd = kwargs.get(self.CMD)
+        idx = kwargs.get(self.IDX)
+        if cmd is None or idx is None:
+            return None
+
+        if cmd == self.CMD_AC_TOGGLE:
+            ac_unit = int(idx)
+            self.at3.toggle_ac_unit(ac_unit)
+
+        if cmd == self.CMD_AC_TEMP_INC:
+            ac_unit = int(idx)
+            self.at3.toggle_temperature_ac_unit(ac_unit, AT3Command.INCREMENT)
+
+        if cmd == self.CMD_AC_TEMP_DEC:
+            ac_unit = int(idx)
+            self.at3.toggle_temperature_ac_unit(ac_unit, AT3Command.DECREMENT)
+
+        if cmd == self.CMD_AC_SET_FAN:
+            ac_unit = int(idx)
+            speed = AT3AcFanSpeed(kwargs.get(self.FAN))
+            self.at3.set_fan_speed_ac_unit(ac_unit, speed)
+
+        if cmd == self.CMD_AC_SET_MODE:
+            ac_unit = int(idx)
+            mode = AT3AcMode(kwargs.get(self.MODE))
+            self.at3.set_mode_ac_unit(ac_unit, mode)
+
+        self.data = self._create_data_dict()
+
     async def _async_update_data(self):
         """Fetch data from Airtouch3."""
         self.at3.update_status()
         if self.at3.comms_status != AT3CommsStatus.OK:
             raise UpdateFailed("Airtouch connection issue")
+
+        return self._create_data_dict()
+
+    def _create_data_dict(self):
 
         data = {
             "name": self.at3.name,

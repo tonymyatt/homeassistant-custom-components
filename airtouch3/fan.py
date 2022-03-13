@@ -115,12 +115,10 @@ class AirTouchGroupEntity(CoordinatorEntity, FanEntity):
     @property
     def preset_modes(self):
         """Return preset modes."""
-        presets = [PRESETS.POSITION]
-        # -1 = no temperatur sensor
         temp = self.coordinator.data["groups"][self._number]["temperature"]
-        if temp != -1:
-            presets.append(PRESETS.TEMP)
-        return presets
+        if temp == -1:
+            return 0
+        return [PRESETS.POSITION, PRESETS.TEMP]
 
     async def async_set_percentage(self, percentage):
         """Set the speed percentage of the fan."""

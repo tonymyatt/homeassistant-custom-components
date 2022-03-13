@@ -4,7 +4,7 @@
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/airtouch3",
   "requirements": [
-    "airtouch3==0.6"
+    "airtouch3==0.8"
   ],
   "ssdp": [],
   "zeroconf": [],
