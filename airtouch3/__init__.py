@@ -17,7 +17,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.FAN]
+PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.FAN, Platform.COVER]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
