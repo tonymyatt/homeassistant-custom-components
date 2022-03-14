@@ -1,6 +1,7 @@
 """The Tony M integration."""
 from __future__ import annotations
 import logging
+from homeassistant.components.tonym.strava_tonym import StravaTonym
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -53,6 +54,7 @@ class TonymDataUpdateCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=SCAN_INTERVAL,
         )
+        self._strava_tonym = StravaTonym()
 
     async def _async_update_data(self):
         """Fetch data for Tony M."""
@@ -60,9 +62,31 @@ class TonymDataUpdateCoordinator(DataUpdateCoordinator):
         # Create dictionary for ["data"] of coorindator in the format
         coord_data = dict()
         coord_data["name"] = "Tony Myatt"
-        coord_data[STRAVA + WEEK + DIST] = 101.4
-        coord_data[STRAVA + WEEK + DIST + DELTA] = 90.4
-        coord_data[STRAVA + WEEK + TIME] = 10.5
+
+        self._strava_tonym.read_strava()
+        stats = self._strava_tonym.calc_weekly_strava_stats()
+
+        # print(f"Cycling Last Week Distance: {last_week.distance:0.1f}km")
+        # print(f"Cycling Last Week Distance delta: {last_week.distance_delta:0.0f}%")
+        # print(f"Cycling Last Week Time: {last_week.time:0.1f}hrs")
+        # print(f"Cycling Last Week Time delta: {last_week.time_delta:0.0f}%")
+        # print(f"Cycling Last Week Elevation: {last_week.elevation:0.0f}m")
+        # print(f"Cycling Last Week Climbing: {last_week.climbing:0.1f}%")
+
+        # print(f"Cycling This Week Distance: {this_week.distance:0.1f}km")
+        # print(f"Cycling This Week Distance delta: {this_week.distance_delta:0.0f}%")
+        # print(f"Cycling This Week Time: {this_week.time:0.1f}hrs")
+        # print(f"Cycling This Week Time delta: {this_week.time_delta:0.0f}%")
+        # print(f"Cycling This Week Elevation: {this_week.elevation:0.0f}m")
+        # print(f"Cycling This Week Climbing: {this_week.climbing:0.1f}%")
+
+        coord_data[STRAVA + WEEK + DIST] = stats["this_week"].distance
+        coord_data[STRAVA + WEEK + DIST + DELTA] = stats["this_week"].distance_delta
+        coord_data[STRAVA + WEEK + TIME] = stats["this_week"].time
+
+        coord_data[STRAVA + LWEEK + DIST] = stats["last_week"].distance
+        coord_data[STRAVA + LWEEK + DIST + DELTA] = stats["last_week"].distance_delta
+        coord_data[STRAVA + LWEEK + TIME] = stats["last_week"].time
 
         return coord_data
 

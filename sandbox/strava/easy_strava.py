@@ -1,44 +1,52 @@
-import pandas as pd
+from os.path import exists
 import requests
 import json
 import time
 from datetime import date, timedelta, datetime
-import pprint
 
-from secrets import STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_CODE
-
+from secrets import STRAVE_TOKEN
 
 # REQUEST http://www.strava.com/oauth/authorize?client_id=CLIENT_ID&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=profile:read_all,activity:read_all
 # RESPONSE http://localhost/exchange_token?state=&code=CODE&scope=read,activity:read_all,profile:read_all
 
-def token_read():
-    # Make Strava auth API call with your 
-    # client_code, client_secret and code
-    response = requests.post(
-                        url = 'https://www.strava.com/oauth/token',
-                        data = {
-                                'client_id': STRAVA_CLIENT_ID,
-                                'client_secret': STRAVA_CLIENT_SECRET,
-                                'code': STRAVA_CODE,
-                                'grant_type': 'authorization_code'
-                                }
-                    )
-    #Save json response as a variable
-    strava_tokens = response.json()
-    # Save tokens to file
-    with open('strava_tokens.json', 'w') as outfile:
-        json.dump(strava_tokens, outfile)
-    # Open JSON file and print the file contents 
-    # to check it's worked properly
-    with open('strava_tokens.json') as check:
-        data = json.load(check)
-    print(data)
+class CycleWeekStats():
+    distance = 0
+    distance_delta = 0
+    time = 0
+    time_delta = 0
+    elevation = 0
+
+    @property
+    def climbing(self) -> float:
+        climb = 0
+        if self.distance > 0:
+            climb = self.elevation/self.distance/10
+        return climb
 
 class StravaTest():
 
     _weekly_data = None
 
+    def token_create(self):
+        
+        # Start with a valid token
+        strava_tokens = STRAVE_TOKEN
+
+        # Save tokens to file
+        with open('strava_tokens.json', 'w') as outfile:
+            json.dump(strava_tokens, outfile)
+
+        # Open JSON file and print the file contents 
+        # to check it's worked properly
+        with open('strava_tokens.json') as check:
+            data = json.load(check)
+        print(data)
+
     def read_strava(self):
+
+        file_exists = exists('strava_tokens.json')
+        if not file_exists:
+            self.token_create()
 
         ## Get the tokens from file to connect to Strava
         with open('strava_tokens.json') as json_file:
@@ -72,7 +80,7 @@ class StravaTest():
         access_token = strava_tokens['access_token']
         
         ## Create the dataframe ready for the API call to store your activity data
-        activities = dict()
+        activities = []
         
         # get page of activities from Strava
         r = requests.get(url + '?access_token=' + access_token + '&per_page=200&page=1')
@@ -88,14 +96,15 @@ class StravaTest():
             if r[x]['type'] != 'Ride':
                 continue
 
-            activities[r[x]['id']] = {
+            activities.append({
+                "id": r[x]['id'],
                 "name": r[x]['name'],
                 'start_date_local': r[x]['start_date_local'],
                 'distance': r[x]['distance'],
                 'moving_time': r[x]['moving_time'],
                 'elapsed_time': r[x]['elapsed_time'],
                 'total_elevation_gain': r[x]['total_elevation_gain']
-            }
+            })
             
         print(f"Writing {len(activities)} activites to file")
         with open('strava_activities.json', 'w') as convert_file:
@@ -103,47 +112,67 @@ class StravaTest():
 
         self._weekly_data = dict()
 
-        for d in self._all_mondays():
-            self._weekly_data[d] = {'distance': 0, 'time': 0, "elevation": 0}
+        for mon_date in self._last_2years_mondays():
+            self._weekly_data[mon_date] = {'distance': 0, 'time': 0, "elevation": 0}
             for a in activities:
-                b = activities[a]
-                ad = datetime.strptime(b['start_date_local'], "%Y-%m-%dT%H:%M:%SZ")
-                ad = date(ad.year, ad.month, ad.day)
-                if ad >= d and ad < d+ timedelta(7):
-                    self._weekly_data[d]['distance'] += b['distance']/1000
-                    self._weekly_data[d]['time'] += b['moving_time']/3600
-                    self._weekly_data[d]['elevation'] += int(b['total_elevation_gain'])
+                act_date = datetime.strptime(a['start_date_local'], "%Y-%m-%dT%H:%M:%SZ")
+                act_date = date(act_date.year, act_date.month, act_date.day)
+                if act_date >= mon_date and act_date < mon_date+ timedelta(7):
+                    self._weekly_data[mon_date]['distance'] += a['distance']/1000
+                    self._weekly_data[mon_date]['time'] += a['moving_time']/3600
+                    self._weekly_data[mon_date]['elevation'] += int(a['total_elevation_gain'])
 
-    def _all_mondays(self):
+    def calc_weekly_strava_stats(self):
+
+        # Weekly data not available
+        if self._weekly_data is None:
+            return None
+
+        data = self._weekly_data
+        mon_this_week = date.today() + timedelta(0 - date.today().weekday())
+        mon_last_week = mon_this_week + timedelta(-7)
+        mon_last_fnight = mon_last_week + timedelta(-7)
+
+        last_week = CycleWeekStats()
+        last_week.distance = data[mon_last_week]['distance']
+        last_week.distance_delta = last_week.distance/data[mon_last_fnight]['distance']*100
+        last_week.time = data[mon_last_week]['time']
+        last_week.time_delta = last_week.time/data[mon_last_fnight]['time']*100
+        last_week.elevation = data[mon_last_week]['elevation']
+
+        this_week = CycleWeekStats()
+        this_week.distance = data[mon_this_week]['distance']
+        this_week.distance_delta = this_week.distance/data[mon_last_week]['distance']*100
+        this_week.time = data[mon_this_week]['time']
+        this_week.time_delta = this_week.time/data[mon_last_week]['time']*100
+        this_week.elevation = data[mon_this_week]['elevation']
+
+        print(f"Cycling Last Week Distance: {last_week.distance:0.1f}km")
+        print(f"Cycling Last Week Distance delta: {last_week.distance_delta:0.0f}%")
+        print(f"Cycling Last Week Time: {last_week.time:0.1f}hrs")
+        print(f"Cycling Last Week Time delta: {last_week.time_delta:0.0f}%")
+        print(f"Cycling Last Week Elevation: {last_week.elevation:0.0f}m")
+        print(f"Cycling Last Week Climbing: {last_week.climbing:0.1f}%")
+
+        print(f"Cycling This Week Distance: {this_week.distance:0.1f}km")
+        print(f"Cycling This Week Distance delta: {this_week.distance_delta:0.0f}%")
+        print(f"Cycling This Week Time: {this_week.time:0.1f}hrs")
+        print(f"Cycling This Week Time delta: {this_week.time_delta:0.0f}%")
+        print(f"Cycling This Week Elevation: {this_week.elevation:0.0f}m")
+        print(f"Cycling This Week Climbing: {this_week.climbing:0.1f}%")
+
+        return {
+            "last_week": last_week,
+            "this_week": this_week
+        }
+
+    def _last_2years_mondays(self):
         d = date(date.today().year-1, 1, 1)
         d += timedelta(7 - d.weekday())
         while d <= date.today():
             yield d
             d += timedelta(7)
-
-    def read_strava_activities(self):
-
-        if self._weekly_data is None:
-            return None
-
-        weekly_data = self._weekly_data
-        monday_this_week = date.today() + timedelta(0 - date.today().weekday())
-        monday_last_week = monday_this_week + timedelta(-7)
-        monday_fortnight = monday_last_week + timedelta(-7)
-
-        print(f"Cycling Last Week Distance: {weekly_data[monday_last_week]['distance']:0.1f}km")
-        print(f"Cycling Last Week Distance delta: {weekly_data[monday_last_week]['distance']/weekly_data[monday_fortnight]['distance']*100:0.0f}%")
-        print(f"Cycling Last Week Time: {weekly_data[monday_last_week]['time']:0.1f}hrs")
-        print(f"Cycling Last Week Time delta: {weekly_data[monday_last_week]['time']/weekly_data[monday_fortnight]['time']*100:0.0f}%")
-        print(f"Cycling Last Week Elevation: {weekly_data[monday_last_week]['elevation']:0.0f}m")
-        print(f"Cycling Last Week Climbing: {weekly_data[monday_last_week]['elevation']/weekly_data[monday_last_week]['distance']/10:0.1f}%")
-        print(f"Cycling This Week Distance: {weekly_data[monday_this_week]['distance']:0.1f}km")
-        print(f"Cycling This Week Distance delta: {weekly_data[monday_this_week]['distance']/weekly_data[monday_last_week]['distance']*100:0.0f}%")
-        print(f"Cycling This Week Time: {weekly_data[monday_this_week]['time']:0.1f}hrs")
-        print(f"Cycling This Week Time delta: {weekly_data[monday_this_week]['time']/weekly_data[monday_last_week]['time']*100:0.0f}%")
-        print(f"Cycling This Week Elevation: {weekly_data[monday_this_week]['elevation']:0.0f}m")
-        print(f"Cycling This Week Climbing: {weekly_data[monday_this_week]['elevation']/weekly_data[monday_this_week]['distance']/10 if weekly_data[monday_this_week]['distance'] == 0 else 0:0.1f}%")
         
 strava = StravaTest()
 strava.read_strava()
-strava.read_strava_activities()
+strava.calc_weekly_strava_stats()

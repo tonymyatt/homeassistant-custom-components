@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .const import DOMAIN, STRAVA, WEEK, DIST, TIME, DELTA
+from .const import DOMAIN, STRAVA, LWEEK, WEEK, DIST, TIME, DELTA
 
 import logging
 
@@ -40,11 +40,13 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     new_entities = []
-    e = TonymReal(coordinator, "Cycling Last Week Distance", "km", STRAVA + WEEK + DIST)
-    e.add_extra_state_attribute("Last Week Delta", "%", STRAVA + WEEK + DIST + DELTA)
-    new_entities.append(e)
-    e = TonymReal(coordinator, "Cycling Last Week Time", "hrs", STRAVA + WEEK + TIME)
-    new_entities.append(e)
+    ent = TonymReal(
+        coordinator, "Cycling Last Week Distance", "km", STRAVA + WEEK + DIST
+    )
+    ent.add_extra_state_attribute("Last Week Delta", "%", STRAVA + WEEK + DIST + DELTA)
+    new_entities.append(ent)
+    ent = TonymReal(coordinator, "Cycling Last Week Time", "hrs", STRAVA + LWEEK + TIME)
+    new_entities.append(ent)
     #    print(f"Cycling Last Week Time delta: {weekly_data[monday_last_week]['time']/weekly_data[monday_fortnight]['time']*100:0.0f}%")
     #    print(f"Cycling Last Week Elevation: {weekly_data[monday_last_week]['elevation']:0.0f}m")
     #    print(f"Cycling Last Week Climbing: {weekly_data[monday_last_week]['elevation']/weekly_data[monday_last_week]['distance']/10:0.1f}%")
