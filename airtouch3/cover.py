@@ -8,19 +8,13 @@ from homeassistant.components.cover import (
     CoverEntity,
 )
 
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.components.fan import FanEntity
-from homeassistant.components.fan import (
-    SUPPORT_SET_SPEED,
-    SUPPORT_PRESET_MODE,
-)
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     CoordinatorEntity,
 )
 
-from airtouch3 import AirTouch3, AT3Group
+from airtouch3 import AirTouch3, AT3Group, AT3GroupMode
 
 from .const import DOMAIN
 
@@ -79,8 +73,9 @@ class AirTouchGroupEntityAsCover(CoordinatorEntity, CoverEntity):
     @property
     def supported_features(self) -> int:
         """Flag supported features."""
-        # if self.mode == S7Mode.AUTO:
-        #    return None
+        mode = self.coordinator.data["groups"][self._number]["mode"]
+        if mode != AT3GroupMode.PERECENT:
+            return None
         return SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_SET_POSITION
 
     @property
@@ -123,7 +118,7 @@ class AirTouchGroupEntityAsCover(CoordinatorEntity, CoverEntity):
             await asyncio.sleep(0.05)
             count = count + 1
 
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
     async def async_open_cover(self, **kwargs):
         """Fully open zone vent."""
@@ -133,7 +128,7 @@ class AirTouchGroupEntityAsCover(CoordinatorEntity, CoverEntity):
                 self.coordinator.data["groups"][self._number]["is_on"] = is_on
                 args = {ATTR_POSITION: 100}
                 await self.async_set_cover_position(**args)
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
     async def async_close_cover(self, **kwargs):
         """Fully close zone vent."""
@@ -142,4 +137,4 @@ class AirTouchGroupEntityAsCover(CoordinatorEntity, CoverEntity):
             if is_on != None:
                 self.coordinator.data["groups"][self._number]["is_on"] = is_on
                 self.coordinator.data["groups"][self._number]["open_percent"] = 0
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()

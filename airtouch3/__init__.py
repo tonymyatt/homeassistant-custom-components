@@ -17,8 +17,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.FAN, Platform.COVER]
-
+PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.COVER]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Air Touch 3 from a config entry."""

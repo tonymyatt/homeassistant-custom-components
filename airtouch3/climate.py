@@ -119,21 +119,7 @@ class AT3GroupClimate(CoordinatorEntity, ClimateEntity):
         super().__init__(coordinator)
         self._number = group.number
         self._toggle = group.toggle
-
-    async def async_added_to_hass(self) -> None:
-        """Run when this Entity has been added to HA."""
-        # Importantly for a push integration, the module that will be getting updates
-        # needs to notify HA of changes. The airtouch device has a register_callback
-        # method, so to this we add the 'self.async_write_ha_state' method, to be
-        # called where ever there are changes.
-        # The call back registration is done once this entity is registered with HA
-        # (rather than in the __init__)
-        # TODO self._at3.register_update_callback(self.async_write_ha_state)
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Entity being removed from hass."""
-        # The opposite of async_added_to_hass. Remove any registered call backs here.
-        # TODO self._at3.unregister_update_callback(self.async_write_ha_state)
+        self._toggle_mode = group.toggle_mode
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -180,14 +166,22 @@ class AT3GroupClimate(CoordinatorEntity, ClimateEntity):
     def hvac_mode(self):
         """Return hvac target hvac state."""
         # there are other power states that aren't 'on' but still count as on (eg. 'Turbo')
-        if self.coordinator.data["groups"][self._number]["is_on"]:
-            return HVAC_MODE_AUTO
+        # on and temp control = Auto
+        # on and position control = Fan
+        # otherwise off
+        mode = self.coordinator.data["groups"][self._number]["mode"]
+        is_on = self.coordinator.data["groups"][self._number]["is_on"]
+        if is_on:
+            if mode == AT3GroupMode.TEMPERATURE:
+                return HVAC_MODE_AUTO
+            else:
+                return HVAC_MODE_FAN_ONLY
         return HVAC_MODE_OFF
 
     @property
     def hvac_modes(self):
         """Return the list of available operation modes."""
-        return [HVAC_MODE_AUTO, HVAC_MODE_OFF]
+        return [HVAC_MODE_AUTO, HVAC_MODE_FAN_ONLY, HVAC_MODE_OFF]
 
     @property
     def supported_features(self):
@@ -199,13 +193,19 @@ class AT3GroupClimate(CoordinatorEntity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
-        if hvac_mode == self.hvac_mode:
-            return
-        elif hvac_mode == HVAC_MODE_OFF and self.hvac_mode == HVAC_MODE_AUTO:
+        is_on = self.coordinator.data["groups"][self._number]["is_on"]
+        mode = self.coordinator.data["groups"][self._number]["mode"]
+        if hvac_mode == HVAC_MODE_OFF and is_on:
             self._toggle()
-        elif hvac_mode == HVAC_MODE_AUTO and self.hvac_mode == HVAC_MODE_OFF:
-            self._toggle()
-        self.async_write_ha_state()
+        elif hvac_mode == HVAC_MODE_AUTO or hvac_mode == HVAC_MODE_FAN_ONLY:
+            if not is_on:
+                self._toggle()
+            if hvac_mode == HVAC_MODE_AUTO and mode == AT3GroupMode.PERECENT:
+                self._toggle_mode()
+            if hvac_mode == HVAC_MODE_FAN_ONLY and mode == AT3GroupMode.TEMPERATURE:
+                self._toggle_mode()
+
+        await self.coordinator.async_refresh()
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
@@ -213,7 +213,7 @@ class AT3GroupClimate(CoordinatorEntity, ClimateEntity):
         if temp is None or temp == self.target_temperature:
             return
         # TODO await self._group.toggle temp up or down
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
 
 class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
@@ -237,21 +237,6 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
 
         self._attr_name = self.coordinator.data["ac_units"][self._number]["name"]
         self._attr_unique_id = f"at3_{ac_id}_ac_{self._number}"
-
-    async def async_added_to_hass(self) -> None:
-        """Run when this Entity has been added to HA."""
-        # Importantly for a push integration, the module that will be getting updates
-        # needs to notify HA of changes. The airtouch device has a register_callback
-        # method, so to this we add the 'self.async_write_ha_state' method, to be
-        # called where ever there are changes.
-        # The call back registration is done once this entity is registered with HA
-        # (rather than in the __init__)
-        # TODO self._at3.register_update_callback(self.async_write_ha_state)
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Entity being removed from hass."""
-        # The opposite of async_added_to_hass. Remove any registered call backs here.
-        # TODO self._at3.unregister_update_callback(self.async_write_ha_state)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -312,14 +297,14 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
             if mode is not None:
                 self.coordinator.data["ac_units"][self._number]["mode"] = mode
             await self.async_turn_on()
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
     async def async_set_fan_mode(self, fan_mode):
         # TODO Need to write the fan mode
         fan = self._set_fan_speed(HA_FAN_SPEED_TO_AT[fan_mode])
         if fan is not None:
             self.coordinator.data["ac_units"][self._number]["fan_speed"] = fan
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
@@ -349,7 +334,7 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
             await asyncio.sleep(0.05)
             count = count + 1
 
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
     async def async_turn_on(self):
         """Turn on."""
@@ -359,7 +344,7 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
             if is_on is not None:
                 self.coordinator.data["ac_units"][self._number]["is_on"] = is_on
 
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
 
     async def async_turn_off(self):
         """Turn off."""
@@ -369,4 +354,4 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
             if is_on is not None:
                 self.coordinator.data["ac_units"][self._number]["is_on"] = is_on
 
-        self.async_write_ha_state()
+        await self.coordinator.async_refresh()
