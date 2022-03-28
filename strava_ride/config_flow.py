@@ -1,25 +1,17 @@
-"""Config flow for Strava Home Assistant."""
+"""Config flow for Strava."""
 from __future__ import annotations
 
-# generic imports
 import logging
 from typing import Any
 import voluptuous as vol
 
-# HASS imports
 from homeassistant import config_entries
 from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.network import get_url, NoURLAvailableError
 from homeassistant.data_entry_flow import FlowResult
 
-# custom module imports
-from .const import (
-    DOMAIN,
-    OAUTH2_AUTHORIZE,
-    OAUTH2_TOKEN,
-    CONF_CALLBACK_URL,
-)
+from .const import DOMAIN, OAUTH2_AUTHORIZE, OAUTH2_TOKEN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,10 +33,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OAuth2FlowHandler(
     config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN
 ):
-    """Config flow to handle Strava Home Assistant OAuth2 authentication."""
+    """Config flow to handle Strava OAuth2 authentication."""
 
     DOMAIN = DOMAIN
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
     @property
     def logger(self) -> logging.Logger:
@@ -59,10 +50,6 @@ class OAuth2FlowHandler(
             "approval_prompt": "force",
             "response_type": "code",
         }
-
-    async def async_step_renew_webhook_subscription(self, data):
-        _LOGGER.debug("renew webhook subscription")
-        return
 
     async def async_step_get_oauth_info(self, user_input=None):
         """Ask user to provide Strava API Credentials"""
@@ -101,12 +88,9 @@ class OAuth2FlowHandler(
         )
 
     async def async_oauth_create_entry(self, data: dict) -> dict:
-        data[
-            CONF_CALLBACK_URL
-        ] = f"{get_url(self.hass, allow_internal=False, allow_ip=False)}/api/strava/webhook"
         data[CONF_CLIENT_ID] = self.flow_impl.client_id
         data[CONF_CLIENT_SECRET] = self.flow_impl.client_secret
 
-        return self.async_create_entry(title=self.flow_impl.name, data=data)
+        return self.async_create_entry(title="Strava Integration", data=data)
 
     async_step_user = async_step_get_oauth_info

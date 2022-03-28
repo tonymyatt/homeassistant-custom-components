@@ -1,85 +1,159 @@
-"""Constants for the Strava Home Assistant integration."""
+"""Constants for the Strava integration."""
 from datetime import timedelta
 
-DOMAIN = "strava"
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
+from homeassistant.const import (
+    LENGTH_KILOMETERS,
+    PERCENTAGE,
+    TIME_HOURS,
+    LENGTH_METERS,
+)
 
-# OAuth Specs
-AUTH_CALLBACK_PATH = "/auth/external/callback"
-OAUTH2_AUTHORIZE = "https://www.strava.com/oauth/authorize"
-OAUTH2_TOKEN = "https://www.strava.com/oauth/token"
+DOMAIN = "strava_ride"
 
 SCAN_INTERVAL = timedelta(minutes=10)
 
-# Webhook & API Specs
-CONF_WEBHOOK_ID = "webhook_id"
-CONF_CALLBACK_URL = "callback_url"
-WEBHOOK_SUBSCRIPTION_URL = "https://www.strava.com/api/v3/push_subscriptions"
-CONF_NB_ACTIVITIES = "nb_activities"
+# OAuth Specs
+OAUTH2_AUTHORIZE = "https://www.strava.com/oauth/authorize"
+OAUTH2_TOKEN = "https://www.strava.com/oauth/token"
+
 MAX_NB_ACTIVITIES = 200
 
-# Event Specs
-CONF_STRAVA_DATA_UPDATE_EVENT = "strava_data_update"
-CONF_STRAVA_CONFIG_UPDATE_EVENT = "strava_config_update"
-CONF_STRAVA_RELOAD_EVENT = "ha_strava_reload"
+WEEKLY_ENTITIES: tuple[SensorEntityDescription] = (
+    SensorEntityDescription(
+        key="distance",
+        name="Distance",
+        native_unit_of_measurement=LENGTH_KILOMETERS,
+        icon="mdi:ruler",
+    ),
+    SensorEntityDescription(
+        key="distance_delta",
+        name="Distance Delta",
+        native_unit_of_measurement=PERCENTAGE,
+        icon="mdi:ruler-square-compass",
+    ),
+    SensorEntityDescription(
+        key="time",
+        name="Moving Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+    ),
+    SensorEntityDescription(
+        key="time_delta",
+        name="Moving Time Delta",
+        native_unit_of_measurement=PERCENTAGE,
+        icon="mdi:clock-start",
+    ),
+    SensorEntityDescription(
+        key="elevation",
+        name="Elevation Gain",
+        native_unit_of_measurement=LENGTH_METERS,
+        icon="mdi:elevation-rise",
+    ),
+    SensorEntityDescription(
+        key="climbing",
+        name="Climbing",
+        native_unit_of_measurement=PERCENTAGE,
+        icon="mdi:slope-uphill",
+    ),
+)
 
-# Sensor Specs
-CONF_SENSOR_DATE = "date"
-CONF_SENSOR_DURATION = "duration"
-CONF_SENSOR_ACTIVITY_COUNT = "activity_count"
-CONF_SENSOR_PACE = "pace"
-CONF_SENSOR_SPEED = "speed"
-CONF_SENSOR_DISTANCE = "distance"
-CONF_SENSOR_KUDOS = "kudos"
-CONF_SENSOR_CALORIES = "kcal"
-CONF_SENSOR_ELEVATION = "elevation_gain"
-CONF_SENSOR_POWER = "power"
-CONF_SENSOR_TROPHIES = "trophies"
-CONF_SENSOR_TITLE = "title"
-CONF_SENSOR_CITY = "city"
-CONF_SENSOR_MOVING_TIME = "moving_time"
-CONF_SENSOR_ACTIVITY_TYPE = "activity_type"
-CONF_ACTIVITY_TYPE_RUN = "run"
-CONF_ACTIVITY_TYPE_RIDE = "ride"
-CONF_ACTIVITY_TYPE_SWIM = "swim"
-CONF_ACTIVITY_TYPE_HIKE = "hike"
-CONF_ACTIVITY_TYPE_OTHER = "other"
-CONF_SUMMARY_YTD = "summary_ytd"
-CONF_SUMMARY_ALL = "summary_all"
-
-CONF_SUMMARY_METRICS = [
-    CONF_SENSOR_DISTANCE,
-    CONF_SENSOR_MOVING_TIME,
-    CONF_SENSOR_ACTIVITY_COUNT,
-]
-
-CONF_SENSORS = {
-    CONF_SENSOR_DATE: {"icon": "mdi:run"},
-    CONF_SENSOR_DURATION: {"icon": "mdi:speedometer"},
-    CONF_SENSOR_MOVING_TIME: {"icon": "mdi:speedometer"},
-    CONF_SENSOR_PACE: {"icon": "mdi:clock-fast"},
-    CONF_SENSOR_SPEED: {"icon": "mdi:clock-fast"},
-    CONF_SENSOR_DISTANCE: {"icon": "mdi:ruler"},
-    CONF_SENSOR_KUDOS: {"icon": "mdi:thumb-up-outline"},
-    CONF_SENSOR_CALORIES: {"icon": "mdi:fire"},
-    CONF_SENSOR_ELEVATION: {"icon": "mdi:elevation-rise"},
-    CONF_SENSOR_POWER: {"icon": "mdi:dumbbell"},
-    CONF_SENSOR_TROPHIES: {"icon": "mdi:trophy"},
-}
-FACTOR_METER_TO_MILE = 0.000621371
-FACTOR_METER_TO_FEET = 3.28084
-FACTOR_KILOJOULES_TO_KILOCALORIES = 0.239006
-
-CONF_SENSOR_1 = "sensor_1"
-CONF_SENSOR_2 = "sensor_2"
-CONF_SENSOR_3 = "sensor_3"
-CONF_SENSOR_4 = "sensor_4"
-CONF_SENSOR_5 = "sensor_5"
-
-CONF_SENSOR_DEFAULT = {
-    "icon": "mdi:run",
-    CONF_SENSOR_1: CONF_SENSOR_DURATION,
-    CONF_SENSOR_2: CONF_SENSOR_PACE,
-    CONF_SENSOR_3: CONF_SENSOR_DISTANCE,
-    CONF_SENSOR_4: CONF_SENSOR_TROPHIES,
-    CONF_SENSOR_5: CONF_SENSOR_KUDOS,
-}
+SUMMARY_ENTITIES: tuple[SensorEntityDescription] = (
+    SensorEntityDescription(
+        key="all_ride_totals_count", name="Ride All Time Count", icon="mdi:numeric"
+    ),
+    SensorEntityDescription(
+        key="all_ride_totals_distance",
+        name="Ride All Time Distance",
+        native_unit_of_measurement=LENGTH_KILOMETERS,
+        icon="mdi:ruler",
+    ),
+    SensorEntityDescription(
+        key="all_ride_totals_elapsed_time",
+        name="Ride All-Time Elapsed Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+        entity_registry_enabled_default=False,
+    ),
+    SensorEntityDescription(
+        key="all_ride_totals_elevation_gain",
+        name="Ride All-Time Elevation Gain",
+        native_unit_of_measurement=LENGTH_METERS,
+        icon="mdi:elevation-rise",
+    ),
+    SensorEntityDescription(
+        key="all_ride_totals_moving_time",
+        name="Ride All-Time Moving Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+    ),
+    SensorEntityDescription(
+        key="biggest_climb_elevation_gain",
+        name="Ride Biggest Elevation Gain",
+        native_unit_of_measurement=LENGTH_METERS,
+        icon="mdi:elevation-rise",
+    ),
+    SensorEntityDescription(
+        key="biggest_ride_distance",
+        name="Ride Biggest Distance",
+        native_unit_of_measurement=LENGTH_KILOMETERS,
+        icon="mdi:ruler",
+    ),
+    SensorEntityDescription(
+        key="ytd_ride_totals_count", name="Ride YTD Count", icon="mdi:numeric"
+    ),
+    SensorEntityDescription(
+        key="ytd_ride_totals_distance",
+        name="Ride YTD Distance",
+        native_unit_of_measurement=LENGTH_KILOMETERS,
+        icon="mdi:ruler",
+    ),
+    SensorEntityDescription(
+        key="ytd_ride_totals_elapsed_time",
+        name="Ride YTD Elapsed Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+        entity_registry_enabled_default=False,
+    ),
+    SensorEntityDescription(
+        key="ytd_ride_totals_elevation_gain",
+        name="Ride YTD Elevation Gain",
+        native_unit_of_measurement=LENGTH_METERS,
+    ),
+    SensorEntityDescription(
+        key="ytd_ride_totals_moving_time",
+        name="Ride YTD Moving Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+    ),
+    SensorEntityDescription(
+        key="recent_ride_totals_count",
+        name="Ride Last 4 Weeks Count",
+        icon="mdi:numeric",
+    ),
+    SensorEntityDescription(
+        key="recent_ride_totals_distance",
+        name="Ride Last 4 Weeks Distance",
+        native_unit_of_measurement=LENGTH_KILOMETERS,
+        icon="mdi:ruler",
+    ),
+    SensorEntityDescription(
+        key="recent_ride_totals_elapsed_time",
+        name="Ride Last 4 Weeks Elapsed Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+        entity_registry_enabled_default=False,
+    ),
+    SensorEntityDescription(
+        key="recent_ride_totals_elevation_gain",
+        name="Ride Last 4 Weeks Elevation Gain",
+        native_unit_of_measurement=LENGTH_METERS,
+        icon="mdi:elevation-rise",
+    ),
+    SensorEntityDescription(
+        key="recent_ride_totals_moving_time",
+        name="Ride Last 4 Weeks Moving Time",
+        native_unit_of_measurement=TIME_HOURS,
+        icon="mdi:timer",
+    ),
+)
