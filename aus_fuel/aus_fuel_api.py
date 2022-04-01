@@ -13,6 +13,7 @@ class AusFuelPrice:
     brand: str
     price: float
     fuel_type: str
+    station_id: str
 
     def __str__(self):
         return f"{self.name} {self.address} {self.brand} {self.fuel_type} @ {self.price}c/L"
@@ -32,6 +33,31 @@ class AusFuelAPI:
         json_data = json.loads(raw_html)
         self._fuel_prices = json_data["data"]
         return json_data["message"] == "ok"
+
+    def get_stations_fuel_types(self) -> list:
+        stations = []
+        fuel_types = []
+        for entry in self._fuel_prices:
+            # Look for a station entry
+            if not "station" in entry:
+                continue
+
+            station = entry["station"]
+            stations.append(
+                {
+                    "id": station["name"].replace(" ", "_"),
+                    "name": station["name"],
+                    "address": station["address"],
+                    "latitude": station["location"]["latitude"],
+                    "longitude": station["location"]["longitude"],
+                    "brand": station["brand"],
+                }
+            )
+            for price_entry in station["prices"]:
+                if not price_entry["type"] in fuel_types:
+                    fuel_types.append(price_entry["type"])
+
+        return {"stations": stations, "fuel_types": fuel_types}
 
     def get_data(self) -> dict:
         prices = {}
@@ -55,6 +81,7 @@ class AusFuelAPI:
                 price.brand = brand
                 price.price = float(price_entry["price"])
                 price.fuel_type = price_entry["type"]
+                price.station_id = name.replace(" ", "_")
 
                 n = price.name.replace(" ", "_")
                 f = price.fuel_type.replace(" ", "_")

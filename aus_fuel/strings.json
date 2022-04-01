@@ -6,7 +6,16 @@
           "host": "[%key:common::config_flow::data::host%]",
           "username": "[%key:common::config_flow::data::username%]",
           "password": "[%key:common::config_flow::data::password%]"
-        }
+        },
+        "description": "[%key:common::config_flow::description::user_step%]"
+      },
+      "select": {
+        "data": {
+          "stations": "[%key:common::config_flow::data::stations%]",
+          "fuel_types": "[%key:common::config_flow::data::fuel_types%]",
+          "devices": "[%key:common::config_flow::data::devices%]"
+        },
+        "description": "[%key:common::config_flow::description::select_step%]"
       }
     },
     "error": {

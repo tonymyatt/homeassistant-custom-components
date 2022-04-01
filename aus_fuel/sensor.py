@@ -22,19 +22,46 @@ async def async_setup_entry(
     """Set up the Australian Fuel Price sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities(
-        [
-            AusFuelPriceSensor(coordinator, key, fuel_entry)
-            for (key, fuel_entry) in coordinator.data["prices"].items()
-        ]
-    )
+    stations = entry.data["stations"]
+    fuel_types = entry.data["fuel_types"]
+    fuel_type_devices = entry.data["fuel_type_devices"]
+
+    list = []
+
+    for (key, fuel_entry) in coordinator.data["prices"].items():
+        if fuel_entry.fuel_type in fuel_types and fuel_entry.station_id in stations:
+            if fuel_type_devices:
+                device = DeviceInfo(
+                    entry_type=DeviceEntryType.SERVICE,
+                    identifiers={(DOMAIN, fuel_entry.fuel_type)},
+                    manufacturer="Fuel Type",
+                    name=fuel_entry.fuel_type,
+                )
+                list.append(AusFuelPriceSensor(coordinator, key, fuel_entry, device))
+            else:
+                device = DeviceInfo(
+                    entry_type=DeviceEntryType.SERVICE,
+                    identifiers={(DOMAIN, fuel_entry.name)},
+                    manufacturer=fuel_entry.brand,
+                    model=fuel_entry.address,
+                    name=fuel_entry.name,
+                )
+                list.append(AusFuelPriceSensor(coordinator, key, fuel_entry, device))
+
+    pprint.pprint(list)
+
+    async_add_entities(list)
 
 
 class AusFuelPriceSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Australian Fuel Price sensor."""
 
     def __init__(
-        self, coordinator: DataUpdateCoordinator, key: str, price_entry: AusFuelPrice
+        self,
+        coordinator: DataUpdateCoordinator,
+        key: str,
+        price_entry: AusFuelPrice,
+        device: DeviceInfo,
     ) -> None:
         """Initialize the Aus Fueld Price sensor."""
         super().__init__(coordinator)
@@ -44,6 +71,7 @@ class AusFuelPriceSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = key
         self._attr_native_unit_of_measurement = "c/L"
         self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_device_info = device
         self._attr_extra_state_attributes = {
             "name": price_entry.name,
             "address": price_entry.address,
@@ -57,17 +85,6 @@ class AusFuelPriceSensor(CoordinatorEntity, SensorEntity):
             self._attr_icon = "mdi:gas-station-outline"
         else:
             self._attr_icon = "mdi:gas-station"
-
-    @property
-    def device_info(self):
-        """Return the device info."""
-        return DeviceInfo(
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, self.price_entry.name)},
-            manufacturer=self.price_entry.brand,
-            model=self.price_entry.address,
-            name=self.price_entry.name,
-        )
 
     @property
     def native_value(self):
