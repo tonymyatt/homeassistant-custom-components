@@ -1,4 +1,4 @@
-# Homeassisstant Custom Components
+# Homeassistant Custom Components
 ## airtouch3
 Integration for Polyaire Airtouch 3 air-con controller. Will be submitted to the core code base in due course.
 ## s7comm
