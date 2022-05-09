@@ -1,6 +1,6 @@
 import datetime
 import pprint
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List
 from numpy import empty, integer
 from puresnmp import get, walk
@@ -10,8 +10,21 @@ IP1 = "192.168.1.4"
 IP2 = "192.168.1.5"
 COMMUNITY = 'public'
 
+OID_MGMT_SYS = '1.3.6.1.2.1.1'
+
 OID_sysDescr = '1.3.6.1.2.1.1.1.0'
+OID_sysDescr = '1.3.6.1.2.1.1.2.0'
 OID_sysUpTime = '1.3.6.1.2.1.1.3.0'
+
+MGMT_SYS = {
+    1: ['sysDescr', str],
+    #2: ['sysObjectID', str],
+    3: ['sysUpTime', 'native'],
+    #4: ['sysContact', str],
+    5: ['sysName', str],
+    #6: ['sysLocation', str],
+    #7: ['sysORLastChange', datetime]
+}
 
 #enterprises.26928.1.1.1.2.1.2.1
 OID_AEROHIVE_IFA = '1.3.6.1.4.1.26928.1.1.1.2.1.1.1'
@@ -71,38 +84,65 @@ AH_ASSOC_ENTRY:dict = {
   	#37: ['ahClientBSSID', 'macaddr']
 }
 
+IP_TOK_LEN = 4
+MAC_TOK_LEN = 6
+
 def ipBytesToString(b:bytes):
-    if len(b) != 4:
+    if len(b) != IP_TOK_LEN:
         return "Unknown IP"
     
     ip = []
-    for i in range(4):
+    for i in range(IP_TOK_LEN):
         ip.append(str(int(b[i])))
 
     return ".".join(ip)
 
 def macBytesToString(b:bytes):
-    if len(b) != 6:
+    if len(b) != MAC_TOK_LEN:
         return "Unknown MAC"
     
     mac = []
-    for i in range(6):
-        mac.append(hex(b[i])[2:])
+    for i in range(MAC_TOK_LEN):
+        mac.append(str(hex(b[i])[2:]).zfill(2))
 
     return ":".join(mac)
 
+def format_field(value, data_type):
+
+    if data_type == str:
+        return value.decode("utf-8")
+    if data_type == int:
+        return int(value)
+    if data_type == datetime:
+        return datetime.fromtimestamp(value).strftime('%m/%d/%Y %H:%M:%S')
+    if data_type == timedelta:
+        return str(timedelta(seconds=value))
+    if data_type == 'ipaddr':
+        return ipBytesToString(value)
+    if data_type == 'macaddr':
+        return macBytesToString(value)
+    if data_type == 'native':
+        return value
+
+    return None
+
 def ahWifiInterfaces(ip:str):
 
-    result = get(ip, COMMUNITY, OID_sysDescr).decode("utf-8") 
-    print(f'sysDescr: {result}')
+    for row in walk(ip, COMMUNITY, OID_MGMT_SYS):
+        strOid:str = str(row.oid).replace(OID_MGMT_SYS+'.', '')
+        toks = strOid.split(".")
+        field = int(toks[0])
 
-    result = get(ip, COMMUNITY, OID_sysUpTime)
-    print(f'sysUptime: {result}')
+        if field in MGMT_SYS:
+
+            data = format_field(row.value, MGMT_SYS[field][1])
+            if data is not None:
+                print(f'{MGMT_SYS[field][0]} {data}')    
 
     ahIfTable:dict = {}
 
     for row in walk(ip, COMMUNITY, OID_AEROHIVE_IFA):
-        strOid:str = str(row.oid).replace("1.3.6.1.4.1.26928.1.1.1.2.1.1.1.", "")
+        strOid:str = str(row.oid).replace(OID_AEROHIVE_IFA+".", "")
         toks = strOid.split(".")
         field = int(toks[0])
         id = int(toks[1])
@@ -111,18 +151,11 @@ def ahWifiInterfaces(ip:str):
             ahIfTable[id] = {}
 
         if field in AH_IF_ENTRY:
-            
-            data = row.value
-
-            if AH_IF_ENTRY[field][1] == str:
-                data = row.value.decode("utf-8")
-            if AH_IF_ENTRY[field][1] == int:
-                data = int(row.value)
-            
+            data = format_field(row.value, AH_IF_ENTRY[field][1])
             ahIfTable[id][AH_IF_ENTRY[field][0]] = data
 
     for row in walk(ip, COMMUNITY, OID_AEROHIVE_IFB):
-        strOid:str = str(row.oid).replace("1.3.6.1.4.1.26928.1.1.1.2.1.2.1.", "")
+        strOid:str = str(row.oid).replace(OID_AEROHIVE_IFB+".", "")
         toks = strOid.split(".", 3)
         field = int(toks[0])
         id = int(toks[1])
@@ -139,22 +172,7 @@ def ahWifiInterfaces(ip:str):
             ahIfTable[id]['wifi.data'][dev] = {}
 
         if field in AH_ASSOC_ENTRY:
-
-            data = row.value
-
-            if AH_ASSOC_ENTRY[field][1] == str:
-                data = row.value.decode("utf-8")
-            if AH_ASSOC_ENTRY[field][1] == int:
-                data = int(row.value)
-            if AH_ASSOC_ENTRY[field][1] == datetime:
-                data = datetime.datetime.fromtimestamp(row.value).strftime('%m/%d/%Y %H:%M:%S')
-            if AH_ASSOC_ENTRY[field][1] == timedelta:
-                data = str(timedelta(seconds=row.value))
-            if AH_ASSOC_ENTRY[field][1] == 'ipaddr':
-                data = ipBytesToString(row.value)
-            if AH_ASSOC_ENTRY[field][1] == 'macaddr':
-                data = macBytesToString(row.value)
-            
+            data = format_field(row.value, AH_ASSOC_ENTRY[field][1])            
             ahIfTable[id]['wifi.data'][dev][AH_ASSOC_ENTRY[field][0]] = data
 
     #pprint.pprint(ahIfTable)
