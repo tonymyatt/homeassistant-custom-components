@@ -1,18 +1,17 @@
 """The Step7 PLC integration."""
 from __future__ import annotations
+
 import logging
 
-from homeassistant.components.sensor import SCAN_INTERVAL
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.const import CONF_HOST
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.const import CONF_HOST, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN
-from .s7comm import S7Comm, S7Addr
+from .const import DOMAIN, SCAN_INTERVAL
+from .s7comm import S7Addr, S7Comm
 
 _LOGGER = logging.getLogger(__name__)
 

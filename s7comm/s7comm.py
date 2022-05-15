@@ -14,7 +14,7 @@ class S7Addr:
 class S7Comm:
 
     _ip_address: string
-    _read_db_list: Dict[int, Dict[str, any]] = {}
+    _read_db_list: dict[int, dict[str, any]] = {}
 
     rain_today: string
     rain_yday: string
@@ -67,12 +67,16 @@ class S7Comm:
 
     def _connect(self) -> bool:
 
+        if self._client is None:
+            self._client = snap7.client.Client()
+
         # Try and connect if not already
         if not self._client.get_connected():
             try:
                 self._client.connect(self._ip_address, 0, 1, 102)
             except:
-                pass
+                del self._client
+                self._client = snap7.client.Client()
 
         # Didnt successfully connect, return false status
         if not self._client.get_connected():

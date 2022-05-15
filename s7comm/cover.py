@@ -1,6 +1,7 @@
 """Support for reading boolean values as digital_sensors from S7 PLC."""
 from collections import MutableMapping
 from enum import Enum
+import logging
 
 from homeassistant.components.cover import (
     SUPPORT_CLOSE,
@@ -12,14 +13,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
     CoordinatorEntity,
+    DataUpdateCoordinator,
 )
 
 from .const import DOMAIN
-from .s7comm import S7Comm, S7Bool, S7Word, S7DWord
-
-import logging
+from .s7comm import S7Bool, S7Comm, S7DWord, S7Word
 
 _LOGGER = logging.getLogger(__name__)
 

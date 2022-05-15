@@ -1,5 +1,6 @@
 """Support for reading boolean values as digital_sensors from S7 PLC."""
 from collections import MutableMapping
+import logging
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -9,14 +10,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
     CoordinatorEntity,
+    DataUpdateCoordinator,
 )
 
 from .const import DOMAIN
 from .s7comm import S7Comm, s7_bool
-
-import logging
 
 _LOGGER = logging.getLogger(__name__)
 
