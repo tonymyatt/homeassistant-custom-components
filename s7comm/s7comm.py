@@ -75,8 +75,7 @@ class S7Comm:
             try:
                 self._client.connect(self._ip_address, 0, 1, 102)
             except:
-                del self._client
-                self._client = snap7.client.Client()
+                pass
 
         # Didnt successfully connect, return false status
         if not self._client.get_connected():

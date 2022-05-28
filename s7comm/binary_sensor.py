@@ -9,13 +9,14 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
 
-from .const import DOMAIN
-from .s7comm import S7Comm, s7_bool
+from .const import DOMAIN, STATUS_BINARY_ENTITIES
+from .s7comm import s7_bool
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,11 +53,14 @@ async def async_setup_entry(
     entity = S7Bool(coordinator, MOTION, "Front Deck Motion", 252, 14, 0)
     new_entities.append(entity)
     entity = S7Bool(coordinator, DOOR, "PLC Cabinet", 150, 14, 0, True)
-    new_entities.append(entity)
-    new_entities.append(S7CpuState(coordinator))
-
     async_add_entities(new_entities)
 
+    async_add_entities(
+        [
+            S7StatusBinaryEntity(coordinator, description)
+            for description in STATUS_BINARY_ENTITIES
+        ]
+    )
 
 class S7Bool(CoordinatorEntity, BinarySensorEntity):
     """Binary sensor representing a boolean in a S7 PLC."""
@@ -102,28 +106,29 @@ class S7Bool(CoordinatorEntity, BinarySensorEntity):
         return bool_value
 
 
-class S7CpuState(CoordinatorEntity, BinarySensorEntity):
-    """Binary sensor representing the run status of S7 PLC."""
+class S7StatusBinaryEntity(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor representing a S7 binary."""
 
     _attr_device_class = BinarySensorDeviceClass.RUNNING
 
-    def __init__(self, coordinator):
-        """Initialize an S7 CPU Status."""
+    def __init__(self, coordinator, description: BinarySensorEntityDescription):
+        """Initialize an S7 binary."""
         super().__init__(coordinator)
+        self.entity_description = description
 
         # Rely on the parent class implementation for these attributes
-        self._attr_name = f"S7 CPU Status"
-        self._attr_unique_id = "cpu_status"
+        self._attr_name = description.name
+        self._attr_device_class = description.device_class
+        self._attr_unique_id = description.key
         self._attr_device_info = coordinator.get_device()
 
     @property
     def is_on(self):
 
-        CPU_STATE_IDX = "CPU_STATE"
         if not isinstance(self.coordinator.data, MutableMapping):
             return None
-        if self.coordinator.data.get(CPU_STATE_IDX) is None:
+        if self.coordinator.data.get(self._attr_unique_id) is None:
             return None
 
-        """Return if CPU is in RUN."""
-        return self.coordinator.data[CPU_STATE_IDX] == "Run"
+        """Return if key from coorindator."""
+        return self.coordinator.data[self._attr_unique_id]

@@ -71,14 +71,17 @@ class S7CommDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from Step 7 CPU."""
 
+        coord_data = {}
+
         # Update and make sure we are still connected at end of update
         self.s7comm.update_dbs()
+
+        coord_data["COMMS_STATUS"] = (self.s7comm.comms_status == False)
         if not self.s7comm.comms_status:
             raise UpdateFailed("Step7 PLC connection issue")
 
         # Create dictionary for ["data"] of coorindator in the format
-        # ["data"] = ["CPU_STATE": "Run/Stop", "DB0": bin_data]
-        coord_data = {"CPU_STATE": self.s7comm.get_cpu_state()}
+        coord_data["CPU_STATE"] = (self.s7comm.get_cpu_state() == "Run")
         db_data = self.s7comm.get_db_data()
         for db_number in db_data:
             coord_data[f"DB{db_number}"] = db_data[db_number]["data"]

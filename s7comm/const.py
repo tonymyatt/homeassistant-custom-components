@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Final
 from homeassistant.components.sensor import SensorStateClass, SensorEntityDescription
+from homeassistant.components.binary_sensor import BinarySensorEntityDescription, BinarySensorDeviceClass
 from homeassistant.const import LENGTH_MILLIMETERS, ELECTRIC_POTENTIAL_VOLT, TEMP_CELSIUS
 from .s7comm import S7Addr
 
@@ -16,6 +17,21 @@ class S7SensorEntityDescription(SensorEntityDescription):
     s7datablock: int = None
     s7address: int = None
     s7datatype: str = None
+
+STATUS_BINARY_ENTITIES: tuple[BinarySensorEntityDescription] = (
+    BinarySensorEntityDescription(
+        key="CPU_STATE",
+        name="S7 CPU Status",
+        device_class=BinarySensorDeviceClass.RUNNING,
+        icon="mdi:play-pause",
+    ),
+    BinarySensorEntityDescription(
+        key="COMMS_STATUS",
+        name="S7 Communication Fail",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        icon="mdi:alert",
+    )
+)
 
 SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
     S7SensorEntityDescription(
