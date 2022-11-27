@@ -64,9 +64,9 @@ class S7CommDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=SCAN_INTERVAL,
         )
 
-    async def write_db(self, s7addr: S7Addr, value):
-        # TODO Implementation required
-        print(f"Write {s7addr.type} {s7addr.db} {s7addr.byte} {s7addr.bit} set to "+str(value))
+    async def write_int(self, s7addr: S7Addr, value: int):
+        """Write the given integer to the S7Addr"""
+        self.s7comm.write_int(s7addr, value)
 
     async def _async_update_data(self):
         """Fetch data from Step 7 CPU."""

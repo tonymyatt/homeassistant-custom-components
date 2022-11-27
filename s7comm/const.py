@@ -2,8 +2,15 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Final
 from homeassistant.components.sensor import SensorStateClass, SensorEntityDescription
-from homeassistant.components.binary_sensor import BinarySensorEntityDescription, BinarySensorDeviceClass
-from homeassistant.const import LENGTH_MILLIMETERS, ELECTRIC_POTENTIAL_VOLT, TEMP_CELSIUS
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntityDescription,
+    BinarySensorDeviceClass,
+)
+from homeassistant.const import (
+    LENGTH_MILLIMETERS,
+    ELECTRIC_POTENTIAL_VOLT,
+    TEMP_CELSIUS,
+)
 from .s7comm import S7Addr
 
 """Constants for the Step7 PLC integration."""
@@ -11,12 +18,15 @@ from .s7comm import S7Addr
 DOMAIN = "s7comm"
 SCAN_INTERVAL: Final = timedelta(seconds=1)
 
+
 @dataclass
 class S7SensorEntityDescription(SensorEntityDescription):
     """A class that describes s7 sensor entities."""
+
     s7datablock: int = None
     s7address: int = None
     s7datatype: str = None
+
 
 STATUS_BINARY_ENTITIES: tuple[BinarySensorEntityDescription] = (
     BinarySensorEntityDescription(
@@ -30,7 +40,7 @@ STATUS_BINARY_ENTITIES: tuple[BinarySensorEntityDescription] = (
         name="S7 Communication Fail",
         device_class=BinarySensorDeviceClass.PROBLEM,
         icon="mdi:alert",
-    )
+    ),
 )
 
 SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
@@ -42,7 +52,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         s7datablock=40,
         s7address=30,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="rain_month",
@@ -52,7 +62,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         s7datablock=40,
         s7address=34,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="rain_month",
@@ -62,7 +72,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         s7datablock=40,
         s7address=38,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="rain_yesterday",
@@ -72,7 +82,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         s7datablock=40,
         s7address=42,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="rain_lastmonth",
@@ -82,7 +92,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         s7datablock=40,
         s7address=46,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="rain_lastyear",
@@ -92,7 +102,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         s7datablock=40,
         s7address=50,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="tank_level",
@@ -102,7 +112,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.MEASUREMENT,
         s7datablock=202,
         s7address=42,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="camper_trailer_battery_voltage",
@@ -112,7 +122,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.MEASUREMENT,
         s7datablock=60,
         s7address=42,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="outside_temperature",
@@ -122,7 +132,7 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.MEASUREMENT,
         s7datablock=22,
         s7address=42,
-        s7datatype="real"
+        s7datatype="real",
     ),
     S7SensorEntityDescription(
         key="outside_temperature_rate_of_change",
@@ -132,6 +142,6 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.MEASUREMENT,
         s7datablock=32,
         s7address=12,
-        s7datatype="real"
-    )
+        s7datatype="real",
+    ),
 )

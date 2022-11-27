@@ -24,6 +24,7 @@ from .s7comm import S7Comm, s7_real
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -46,11 +47,9 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     async_add_entities(
-        [
-            Step7Real(coordinator, description)
-            for description in SENSOR_REAL_ENTITIES
-        ]
+        [Step7Real(coordinator, description) for description in SENSOR_REAL_ENTITIES]
     )
+
 
 class Step7Real(CoordinatorEntity, SensorEntity):
     """Implementation of a step7 real sensor."""

@@ -30,8 +30,6 @@ async def async_setup_entry(
     _LOGGER.debug("Setting up Step7 PLC Digital Sensor entities...")
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    coordinator.s7comm.register_db(250, 0, 18)  # Tony garage door status
-    coordinator.s7comm.register_db(251, 0, 18)  # Nerrilee garage door status
     coordinator.s7comm.register_db(252, 0, 18)  # Front Deck Motion
     coordinator.s7comm.register_db(150, 0, 18)  # PLC Cabinet Open
 
@@ -41,15 +39,10 @@ async def async_setup_entry(
     # are loaded into HASS
     await coordinator.async_config_entry_first_refresh()
 
-    GARAGE = BinarySensorDeviceClass.GARAGE_DOOR
     MOTION = BinarySensorDeviceClass.MOTION
     DOOR = BinarySensorDeviceClass.DOOR
 
     new_entities = []
-    entity = S7Bool(coordinator, GARAGE, "Tony Garage Door", 250, 14, 0)
-    new_entities.append(entity)
-    entity = S7Bool(coordinator, GARAGE, "Nerrilee Garage Door", 251, 14, 0)
-    new_entities.append(entity)
     entity = S7Bool(coordinator, MOTION, "Front Deck Motion", 252, 14, 0)
     new_entities.append(entity)
     entity = S7Bool(coordinator, DOOR, "PLC Cabinet", 150, 14, 0, True)
@@ -61,6 +54,7 @@ async def async_setup_entry(
             for description in STATUS_BINARY_ENTITIES
         ]
     )
+
 
 class S7Bool(CoordinatorEntity, BinarySensorEntity):
     """Binary sensor representing a boolean in a S7 PLC."""

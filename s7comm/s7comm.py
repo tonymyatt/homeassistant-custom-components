@@ -29,14 +29,15 @@ class S7Comm:
         db_details = {"start": start, "size": size, "data": None}
         self._read_db_list[db_number] = db_details
 
-    def write_db(self, s7addr: S7Addr):
+    def write_int(self, s7addr: S7Addr, int_value: int):
 
         if not self._connect():
             return None
 
         try:
-            pass
-            self._client.write_area(snap7.types.Areas.DB, 10, 0, 10, 1, data)
+            data = bytearray(2)
+            snap7.util.set_int(data, 0, int_value)
+            self._client.db_write(s7addr.db, s7addr.byte, data)
         except:
             return None
 
@@ -105,57 +106,57 @@ class S7Bool(S7Addr):
 
 
 class S7DWord(S7Addr):
-    def __init__(self, db: int, offset: int) -> None:
+    def __init__(self, db: int, byte: int) -> None:
         self.type = snap7.types.WordLen.DWord
         self.db = db
-        self.offset = offset
+        self.byte = byte
 
     def __str__(self) -> str:
-        return f"DB{self.db}.DBD{self.offset}"
+        return f"DB{self.db}.DBD{self.byte}"
 
     def get_real(self, real_format, db_data) -> float:
         try:
-            return float(real_format.format(snap7.util.get_real(db_data, self.offset)))
+            return float(real_format.format(snap7.util.get_real(db_data, self.byte)))
         except:
             return None
 
     def get_dint(self, db_data) -> int:
         try:
-            return snap7.util.get_dint(db_data, self.offset)
+            return snap7.util.get_dint(db_data, self.byte)
         except:
             return None
 
     def get_dword(self, db_data) -> int:
         try:
-            return snap7.util.get_dword(db_data, self.offset)
+            return snap7.util.get_dword(db_data, self.byte)
         except:
             return None
 
 
 class S7Word(S7Addr):
-    def __init__(self, db: int, offset: int) -> None:
+    def __init__(self, db: int, byte: int) -> None:
         self.type = snap7.types.WordLen.Word
         self.db = db
-        self.offset = offset
+        self.byte = byte
 
     def __str__(self) -> str:
-        return f"DB{self.db}.DBW{self.offset}"
+        return f"DB{self.db}.DBW{self.byte}"
 
-    def get_int(self, real_format, db_data) -> int:
+    def get_int(self, db_data) -> int:
         try:
-            return snap7.util.get_int(db_data, self.offset)
+            return snap7.util.get_int(db_data, self.byte)
         except:
             return None
 
-    def get_word(self, real_format, db_data) -> int:
+    def get_word(self, db_data) -> int:
         try:
-            return snap7.util.get_word(db_data, self.offset)
+            return snap7.util.get_word(db_data, self.byte)
         except:
             return None
 
 
-def s7_real(real_format, data, offset):
-    return float(real_format.format(snap7.util.get_real(data, offset)))
+def s7_real(real_format, data, byte):
+    return float(real_format.format(snap7.util.get_real(data, byte)))
 
 
 def s7_bool(data, byte, bit):
