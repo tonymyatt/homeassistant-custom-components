@@ -62,6 +62,7 @@ async def async_setup_entry(
 
 
 INT_TO_DAY_MAP = {
+    0: "Manual",
     1: "Sunday",
     2: "Monday",
     3: "Tuesday",
@@ -90,17 +91,17 @@ class HaWateringRunTime(CoordinatorEntity, NumberEntity):
         self._attr_unique_id = f"DB{self._db_number}_{day}_run_mins"
         self._attr_device_info = description.device
         self._attr_icon = "mdi:calendar-clock"
-        self._attr_max_value = MAX_RUN_MINS
-        self._attr_min_value = MIN_RUN_MINS
-        self._attr_unit_of_measurement = "min"
+        self._attr_native_max_value = MAX_RUN_MINS
+        self._attr_native_min_value = MIN_RUN_MINS
+        self._attr_native_unit_of_measurement = "min"
 
     @property
-    def value(self) -> int:
-        """Return the current start hour."""
+    def native_value(self) -> int:
+        """Return the run time in minutes."""
         return self.coordinator.get_int(self._s7_run_minutes)
 
-    async def async_set_value(self, value: float) -> None:
-        """Set the perfume amount."""
+    async def async_set_native_value(self, value: float) -> None:
+        """Set the run time in minutes."""
         if not value.is_integer():
             raise ValueError(
                 f"Can't set the start hour to {value}. Start hour must be an integer."
@@ -124,17 +125,17 @@ class HaWateringAreaStartTime(CoordinatorEntity, NumberEntity):
         self._attr_unique_id = f"DB{self._db_number}_start_hour"
         self._attr_device_info = description.device
         self._attr_icon = "mdi:progress-clock"
-        self._attr_max_value = MAX_START_HOURS
-        self._attr_min_value = MIN_START_HOURS
+        self._attr_native_max_value = MAX_START_HOURS
+        self._attr_native_min_value = MIN_START_HOURS
         self._attr_mode = NumberMode.BOX
 
     @property
-    def value(self) -> int:
+    def native_value(self) -> int:
         """Return the current start hour."""
         return self.coordinator.get_int(self._s7_start_hour)
 
-    async def async_set_value(self, value: float) -> None:
-        """Set the perfume amount."""
+    async def async_set_native_value(self, value: float) -> None:
+        """Set the start hour."""
         if not value.is_integer():
             raise ValueError(
                 f"Can't set the start hour to {value}. Start hour must be an integer."

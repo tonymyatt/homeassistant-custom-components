@@ -10,7 +10,13 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, SCAN_INTERVAL, HA_COVER_ENTITIES, HA_WATERING_AREAS
+from .const import (
+    DOMAIN,
+    SCAN_INTERVAL,
+    HA_COVER_ENTITIES,
+    HA_WATERING_AREAS,
+    HA_DEVICE2_ENTITIES,
+)
 from .s7comm import S7Addr, S7Comm, S7Bool, S7Word
 
 _LOGGER = logging.getLogger(__name__)
@@ -90,6 +96,10 @@ class S7CommDataUpdateCoordinator(DataUpdateCoordinator):
         [
             self.s7comm.register_db(desc.s7datablock, 0, desc.s7readbytes)
             for desc in HA_COVER_ENTITIES
+        ]
+        [
+            self.s7comm.register_db(desc.s7datablock, 0, desc.s7readbytes)
+            for desc in HA_DEVICE2_ENTITIES
         ]
         [
             self.s7comm.register_db(desc.s7datablock, 0, desc.s7readbytes)

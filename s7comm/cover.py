@@ -1,5 +1,5 @@
 """Support for reading covers from S7 PLC."""
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from enum import Enum
 import logging
 
@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 from homeassistant.const import STATE_ON, STATE_OFF
-from .const import DOMAIN, HA_COVER_ENTITIES, HACoverEntityDescription
+from .const import DOMAIN, HA_COVER_ENTITIES, HAGenericEntityDescription
 from .s7comm import S7Bool, S7Comm, S7DWord, S7Word
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,11 +54,10 @@ class S7HaCover(CoordinatorEntity, CoverEntity):
     AUTO_CMD = 4
 
     # def __init__(self, coordinator, name: str, db_number: int) -> None:
-    def __init__(self, coordinator, description: HACoverEntityDescription) -> None:
+    def __init__(self, coordinator, description: HAGenericEntityDescription) -> None:
         """Initialize the cover."""
         super().__init__(coordinator)
         self._db_number = description.s7datablock
-        self._mod_run_stop = description.mod_run_stop
 
         # Addresses in the DB
         self._s7_interlocks = S7Word(description.s7datablock, 2)
@@ -84,14 +83,11 @@ class S7HaCover(CoordinatorEntity, CoverEntity):
 
     def update_time_attrs(self):
         """Update the time open today and yday attributes"""
-        strOnStr = "Open"
-        if self._mod_run_stop:
-            strOnStr = "Running"
         self._attr_extra_state_attributes[
-            f"Time {strOnStr} Today"
+            f"Time Open Today"
         ] = f"{self.coordinator.get_int(self._s7_open_tday)} min"
         self._attr_extra_state_attributes[
-            f"Time {strOnStr} YDay"
+            f"Time Open YDay"
         ] = f"{self.coordinator.get_int(self._s7_open_yday)} min"
 
         disabled = self.coordinator.get_bool(self._s7_disabled)
@@ -107,16 +103,6 @@ class S7HaCover(CoordinatorEntity, CoverEntity):
             self._attr_extra_state_attributes["Status"] = "Disabled"
         if interlocked:
             self._attr_extra_state_attributes["Status"] = "Interlocked"
-
-    @property
-    def state(self):
-        """Override the super class implemenation for state when there is a mod run_stop (likely to be a pump)"""
-        if self._mod_run_stop:
-            if (closed := self.is_closed) is None:
-                return None
-            return STATE_OFF if closed else STATE_ON
-
-        return super().state
 
     @property
     def is_closed(self):
@@ -141,8 +127,8 @@ class S7HaCover(CoordinatorEntity, CoverEntity):
         """Flag supported features."""
         avail = self.coordinator.get_bool(self._s7_available)
         auto = self.coordinator.get_bool(self._s7_is_automatic)
-        open = not self.is_closed
-        if not avail or (auto and open):
+        is_open = not self.is_closed
+        if not avail or (auto and is_open):
             return None
         return SUPPORT_OPEN | SUPPORT_CLOSE
 

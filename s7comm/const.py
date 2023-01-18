@@ -43,13 +43,12 @@ class S7SensorEntityDescription(SensorEntityDescription):
 
 
 @dataclass
-class HACoverEntityDescription(EntityDescription):
-    """A class that describes S7 ha cover objects."""
+class HAGenericEntityDescription(EntityDescription):
+    """A class that describes S7 device objects."""
 
     s7datablock: int = None
     s7readbytes: int = None
     disable_switch: bool = False
-    mod_run_stop: bool = False
 
 
 @dataclass
@@ -122,15 +121,15 @@ HA_WATERING_AREAS: tuple[HAWateringAreaDescription] = (
     ),
 )
 
-HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
-    HACoverEntityDescription(
+HA_COVER_ENTITIES: tuple[HAGenericEntityDescription] = (
+    HAGenericEntityDescription(
         key="nerrilee_garage_door",
         name="Nerrilee Garage Door",
         device_class=CoverDeviceClass.GARAGE,
         s7datablock=9,
         s7readbytes=22,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="tony_garage_door",
         name="Tony Garage Door",
         device_class=CoverDeviceClass.GARAGE,
@@ -138,7 +137,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="tank_to_orchard_valve",
         name="Tank to Orchard Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -147,7 +146,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="herb_garden_valve",
         name="Herb Garden Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -156,7 +155,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="downpipe_drain_valve",
         name="Downpipe Drain Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -165,7 +164,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="watering_mains_valve",
         name="Watering Mains Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -174,7 +173,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="back_tap_valve",
         name="Back Tap Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -183,7 +182,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="front_yard_valve",
         name="Front Yard Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -192,7 +191,7 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+    HAGenericEntityDescription(
         key="front_tap_valve",
         name="Front Tap Valve",
         device_class=CoverDeviceClass.DAMPER,
@@ -201,15 +200,16 @@ HA_COVER_ENTITIES: tuple[HACoverEntityDescription] = (
         s7readbytes=22,
         disable_switch=True,
     ),
-    HACoverEntityDescription(
+)
+
+HA_DEVICE2_ENTITIES: tuple[HAGenericEntityDescription] = (
+    HAGenericEntityDescription(
         key="watering_pump",
         name="Watering Pump",
-        device_class=CoverDeviceClass.SHUTTER,
         icon="mdi:pump",
-        s7datablock=27,
-        s7readbytes=22,
+        s7datablock=28,
+        s7readbytes=18,
         disable_switch=True,
-        mod_run_stop=True,
     ),
 )
 
@@ -327,6 +327,16 @@ SENSOR_REAL_ENTITIES: tuple[S7SensorEntityDescription] = (
         state_class=SensorStateClass.MEASUREMENT,
         s7datablock=32,
         s7address=12,
+        s7datatype="real",
+    ),
+    S7SensorEntityDescription(
+        key="tank_pump_flow_calc",
+        name="Tank Pump Calculated Flow",
+        native_unit_of_measurement="L/s",
+        icon="mdi:waves-arrow-right",
+        state_class=SensorStateClass.MEASUREMENT,
+        s7datablock=19,
+        s7address=42,
         s7datatype="real",
     ),
 )

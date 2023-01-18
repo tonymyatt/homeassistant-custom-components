@@ -1,5 +1,5 @@
 """Support for reading boolean values as digital_sensors from S7 PLC."""
-from collections import MutableMapping
+from collections.abc import MutableMapping
 import logging
 
 from homeassistant.components.binary_sensor import (
