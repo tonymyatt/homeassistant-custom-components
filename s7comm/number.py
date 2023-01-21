@@ -1,10 +1,7 @@
 """Support for number input to S7 PLC."""
 import logging
 
-from homeassistant.components.number import (
-    NumberMode,
-    NumberEntity,
-)
+from homeassistant.components.number import NumberEntity, NumberMode
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant

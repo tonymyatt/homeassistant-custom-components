@@ -204,8 +204,8 @@ HA_COVER_ENTITIES: tuple[HAGenericEntityDescription] = (
 
 HA_DEVICE2_ENTITIES: tuple[HAGenericEntityDescription] = (
     HAGenericEntityDescription(
-        key="watering_pump",
-        name="Watering Pump",
+        key="tank_pump",
+        name="Tank Pump",
         icon="mdi:pump",
         s7datablock=28,
         s7readbytes=18,

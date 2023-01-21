@@ -28,6 +28,7 @@ PLATFORMS: list[Platform] = [
     Platform.COVER,
     Platform.SWITCH,
     Platform.NUMBER,
+    Platform.BUTTON,
 ]
 
 
