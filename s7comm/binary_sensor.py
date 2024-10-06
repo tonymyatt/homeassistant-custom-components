@@ -1,5 +1,5 @@
 """Support for reading boolean values as digital_sensors from S7 PLC."""
-from collections import MutableMapping
+from collections.abc import MutableMapping
 import logging
 
 from homeassistant.components.binary_sensor import (
@@ -15,8 +15,8 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
-from .const import DOMAIN, STATUS_BINARY_ENTITIES
-from .s7comm import s7_bool
+from .const import DOMAIN, STATUS_BINARY_ENTITIES, HA_WATERING_AREAS
+from .s7comm import S7Bool
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,13 +27,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Step 7 PLC entities."""
-    _LOGGER.debug("Setting up Step7 PLC Digital Sensor entities...")
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    coordinator.s7comm.register_db(250, 0, 18)  # Tony garage door status
-    coordinator.s7comm.register_db(251, 0, 18)  # Nerrilee garage door status
-    coordinator.s7comm.register_db(252, 0, 18)  # Front Deck Motion
-    coordinator.s7comm.register_db(150, 0, 18)  # PLC Cabinet Open
+    coordinator.s7comm.register_db(252, 14, 16)  # Front Deck Motion
+    coordinator.s7comm.register_db(150, 14, 16)  # PLC Cabinet Open
 
     # Now we have told the coorindator about what DB's to load
     # wait until the next update before we start adding entities
@@ -41,18 +38,13 @@ async def async_setup_entry(
     # are loaded into HASS
     await coordinator.async_config_entry_first_refresh()
 
-    GARAGE = BinarySensorDeviceClass.GARAGE_DOOR
     MOTION = BinarySensorDeviceClass.MOTION
     DOOR = BinarySensorDeviceClass.DOOR
 
     new_entities = []
-    entity = S7Bool(coordinator, GARAGE, "Tony Garage Door", 250, 14, 0)
+    entity = S7BoolEntity(coordinator, MOTION, "Front Deck Motion", 252, 14, 0)
     new_entities.append(entity)
-    entity = S7Bool(coordinator, GARAGE, "Nerrilee Garage Door", 251, 14, 0)
-    new_entities.append(entity)
-    entity = S7Bool(coordinator, MOTION, "Front Deck Motion", 252, 14, 0)
-    new_entities.append(entity)
-    entity = S7Bool(coordinator, DOOR, "PLC Cabinet", 150, 14, 0, True)
+    entity = S7BoolEntity(coordinator, DOOR, "PLC Cabinet", 150, 14, 0, True)
     async_add_entities(new_entities)
 
     async_add_entities(
@@ -62,7 +54,25 @@ async def async_setup_entry(
         ]
     )
 
-class S7Bool(CoordinatorEntity, BinarySensorEntity):
+    # Watering areas
+    async_add_entities(
+        [
+            S7BoolEntity(
+                coordinator,
+                BinarySensorDeviceClass.PROBLEM,
+                f"{description.name} Available",
+                description.s7datablock,
+                8,
+                1,
+                True,
+                description.device,
+            )
+            for description in HA_WATERING_AREAS
+        ]
+    )
+
+
+class S7BoolEntity(CoordinatorEntity, BinarySensorEntity):
     """Binary sensor representing a boolean in a S7 PLC."""
 
     def __init__(
@@ -74,34 +84,27 @@ class S7Bool(CoordinatorEntity, BinarySensorEntity):
         byte: int,
         bit: int,
         invert: bool = False,
+        device=None,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_device_class = dev_class
-        self._byte = byte
-        self._bit = bit
-        self._db_number = db_number
         self._invert = invert
+        self._s7_bool = S7Bool(db_number, byte, bit)
 
         # Rely on the parent class implementation for these attributes
         self._attr_name = name
-        self._attr_unique_id = f"DB{self._db_number}.DBX{self._byte}.{self._bit}"
+        self._attr_unique_id = f"DB{db_number}.DBX{byte}.{bit}"
         self._attr_extra_state_attributes = {"S7 address": self._attr_unique_id}
-        self._attr_device_info = coordinator.get_device()
+        if device is None:
+            self._attr_device_info = coordinator.get_device()
+        else:
+            self._attr_device_info = device
 
     @property
     def is_on(self):
         """Return native value for entity."""
-        idx = f"DB{self._db_number}"
-
-        # Check we have data available and our db index is available
-        if not isinstance(self.coordinator.data, MutableMapping):
-            return None
-        if not self.coordinator.data.get(idx):
-            return None
-
-        db_data = self.coordinator.data[idx]
-        bool_value = s7_bool(db_data, self._byte, self._bit)
+        bool_value = self.coordinator.get_bool(self._s7_bool)
         bool_value = not bool_value if self._invert else bool_value
         return bool_value
 

@@ -1,7 +1,7 @@
 """Support for reading numberic values as sensors from S7 PLC."""
 from __future__ import annotations
 
-from collections import MutableMapping
+from collections.abc import MutableMapping
 import logging
 from typing import Any, cast
 
@@ -24,6 +24,7 @@ from .s7comm import S7Comm, s7_real
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -38,6 +39,7 @@ async def async_setup_entry(
     coordinator.s7comm.register_db(60, 0, 120)  # Camper Trailer Batt Voltage
     coordinator.s7comm.register_db(22, 0, 120)  # Outside temp
     coordinator.s7comm.register_db(32, 0, 16)  # Outside temp ROC
+    coordinator.s7comm.register_db(19, 0, 46)  # Tank Pump Calculated Flow
 
     # Now we have told the coorindator about what DB's to load
     # wait until the next update before we start adding entities
@@ -46,11 +48,9 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     async_add_entities(
-        [
-            Step7Real(coordinator, description)
-            for description in SENSOR_REAL_ENTITIES
-        ]
+        [Step7Real(coordinator, description) for description in SENSOR_REAL_ENTITIES]
     )
+
 
 class Step7Real(CoordinatorEntity, SensorEntity):
     """Implementation of a step7 real sensor."""
