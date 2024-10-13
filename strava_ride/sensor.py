@@ -1,5 +1,10 @@
 """Support for Strava sensor."""
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
@@ -10,7 +15,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
-from .const import SUMMARY_ENTITIES, DOMAIN, WEEKLY_ENTITIES
+from .const import DOMAIN, GEAR_SENSOR_ENTITIES, SUMMARY_ENTITIES, WEEKLY_ENTITIES
 
 
 async def async_setup_entry(
@@ -26,6 +31,15 @@ async def async_setup_entry(
         ],
         False,
     )
+
+    for ha_id, name in coordinator.data["gear_ids"].items():
+        async_add_entities(
+            [
+                StravaGearSensor(coordinator, name, ha_id, description)
+                for description in GEAR_SENSOR_ENTITIES
+            ],
+            False,
+        )
 
     async_add_entities(
         [
@@ -55,17 +69,7 @@ class StravaSummarySensor(CoordinatorEntity, SensorEntity):
         self.entity_description = description
         self._attr_name = f"{description.name}"
         self._attr_unique_id = f"{description.key}"
-
-    @property
-    def device_info(self):
-        """Return the device info."""
-        return DeviceInfo(
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, self.platform.config_entry.unique_id)},
-            manufacturer="Strava",
-            model="Ride Statistics",
-            name=self.coordinator.name,
-        )
+        self._attr_device_info = self.coordinator.get_device()
 
     @property
     def native_value(self):
@@ -93,17 +97,7 @@ class StravaWeeklySensor(CoordinatorEntity, SensorEntity):
         self.object_name = object
         self._attr_name = f"{name} {description.name}"
         self._attr_unique_id = f"{object}_{description.key}"
-
-    @property
-    def device_info(self):
-        """Return the device info."""
-        return DeviceInfo(
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, self.platform.config_entry.unique_id)},
-            manufacturer="Strava",
-            model="Ride Statistics",
-            name=self.coordinator.name,
-        )
+        self._attr_device_info = self.coordinator.get_device()
 
     @property
     def native_value(self):
@@ -113,6 +107,38 @@ class StravaWeeklySensor(CoordinatorEntity, SensorEntity):
                 self.coordinator.data["weekly_stats"][self.object_name],
                 self.entity_description.key,
             )
+            if self.coordinator.data
+            else None
+        )
+
+
+class StravaGearSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Strava gear sensor."""
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        name: str,
+        object: str,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize the Strava sensor."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self.object_name = f"{object}_{description.key}"
+        self._attr_name = f"{name} {description.name}"
+        self._attr_unique_id = f"{object}_{description.key}"
+        self._attr_device_info = self.coordinator.get_device()
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        key = "time"
+        if self.device_class == SensorDeviceClass.DISTANCE:
+            key = "distance"
+
+        return (
+            self.coordinator.data["gear_stats"][self.object_name][key]
             if self.coordinator.data
             else None
         )
