@@ -32,10 +32,10 @@ async def async_setup_entry(
         False,
     )
 
-    for ha_id, name in coordinator.data["gear_ids"].items():
+    for ha_id, gear in coordinator.data["gear_ids"].items():
         async_add_entities(
             [
-                StravaGearSensor(coordinator, name, ha_id, description)
+                StravaGearSensor(coordinator, gear["name"], ha_id, description)
                 for description in GEAR_SENSOR_ENTITIES
             ],
             False,
@@ -128,7 +128,7 @@ class StravaGearSensor(CoordinatorEntity, SensorEntity):
         self.object_name = f"{object}_{description.key}"
         self._attr_name = f"{name} {description.name}"
         self._attr_unique_id = f"{object}_{description.key}"
-        self._attr_device_info = self.coordinator.get_device()
+        self._attr_device_info = self.coordinator.get_device(object)
 
     @property
     def native_value(self):

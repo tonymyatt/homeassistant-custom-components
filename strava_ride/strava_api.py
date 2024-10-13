@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timedelta
 import json
 import logging
 import pprint
-from datetime import datetime as dt, date, timedelta
 
-from homeassistant.helpers import config_entry_oauth2_flow
+from dateutil.parser import parse as dt_parse
+
 from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.util import dt as dt_util
 
-from .const import MAX_NB_ACTIVITIES, GEAR_SERVICE_KEYS
+from .const import GEAR_SERVICE_KEYS, MAX_NB_ACTIVITIES
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -19,15 +23,21 @@ class CycleGearService:
 
     distance: int = 0
     time: int = 0
-    service_date: dt = dt(2024, 8, 1, 13, 0, 0)
+    service_date: datetime = datetime.now(tz=dt_util.get_default_time_zone())
 
-    def add_activity(self, act_date: dt, act_dist: int, act_time: int):
+    def clear_counters(self):
+        """Clear all service counters."""
+        self.distance = 0
+        self.time = 0
+
+    def process_activity(self, act_date: datetime, act_dist: int, act_time: int):
         """Add an activities distance time to this service, dependant on date."""
         if act_date >= self.service_date:
             self.distance += act_dist
             self.time += act_time
 
     def __repr__(self) -> str:
+        """Create string representation."""
         return f"CycleGearService time:{self.time}; distance:{self.distance}; service_date:{self.service_date}"
 
 
@@ -57,22 +67,36 @@ class CycleGear:
         self.service_time_2 = CycleGearService()
         self.service_time_3 = CycleGearService()
 
-    def add_activity(self, act_date: dt, act_dist: int, act_time: int):
+    def clear_counters(self):
+        """Clear all service counters."""
+        self.service_dist_1.clear_counters()
+        self.service_dist_2.clear_counters()
+        self.service_dist_3.clear_counters()
+        self.service_dist_4.clear_counters()
+        self.service_dist_5.clear_counters()
+        self.service_time_1.clear_counters()
+        self.service_time_2.clear_counters()
+        self.service_time_3.clear_counters()
+
+    def process_activity(self, act_date: datetime, act_dist: int, act_time: int):
         """Add an activities distance time to service items, dependant on date."""
-        self.service_dist_1.add_activity(act_date, act_dist, act_time)
-        self.service_dist_2.add_activity(act_date, act_dist, act_time)
-        self.service_dist_3.add_activity(act_date, act_dist, act_time)
-        self.service_dist_4.add_activity(act_date, act_dist, act_time)
-        self.service_dist_5.add_activity(act_date, act_dist, act_time)
-        self.service_time_1.add_activity(act_date, act_dist, act_time)
-        self.service_time_2.add_activity(act_date, act_dist, act_time)
-        self.service_time_3.add_activity(act_date, act_dist, act_time)
+        self.service_dist_1.process_activity(act_date, act_dist, act_time)
+        self.service_dist_2.process_activity(act_date, act_dist, act_time)
+        self.service_dist_3.process_activity(act_date, act_dist, act_time)
+        self.service_dist_4.process_activity(act_date, act_dist, act_time)
+        self.service_dist_5.process_activity(act_date, act_dist, act_time)
+        self.service_time_1.process_activity(act_date, act_dist, act_time)
+        self.service_time_2.process_activity(act_date, act_dist, act_time)
+        self.service_time_3.process_activity(act_date, act_dist, act_time)
 
     def __repr__(self) -> str:
+        """Create string representation."""
         return f"CycleGear {self.name} {self.service_dist_1} {self.service_dist_2} {self.service_dist_3} {self.service_dist_4} {self.service_dist_5} {self.service_time_1} {self.service_time_2} {self.service_time_3}"
 
 
 class CycleWeekStats:
+    """Weekly summary cycling stats."""
+
     distance = 0
     distance_delta = 0
     time = 0
@@ -81,6 +105,7 @@ class CycleWeekStats:
 
     @property
     def climbing(self) -> float:
+        """Return climbing in percentage (elevation on distance)."""
         climb = 0
         if self.distance > 0:
             climb = round(self.elevation / self.distance / 10, 1)
@@ -88,11 +113,7 @@ class CycleWeekStats:
 
 
 class StravaAPI:
-    """
-    API to read data from Strava API
-    """
-
-    _gear_service_dates = {}
+    """API to read data from Strava API."""
 
     _strava_ride_activities: list = []
     _strava_ride_gear: dict[str, CycleGear] = {}
@@ -105,9 +126,17 @@ class StravaAPI:
         """Init the Object."""
         self.oauth_websession = oauth_websession
 
-    async def set_gear_service_date(self, service_key, service_date):
-        pprint.pprint(f"{service_key} set to {service_date}, now recalc")
-        self._gear_service_dates[service_key] = service_date
+    async def set_gear_service_date(
+        self, strava_id: str, service_attr: str, service_date: datetime
+    ):
+        """Set the service date of the strava_id gear for the given service attribute."""
+        gear_service: CycleGearService = getattr(
+            self._strava_ride_gear[strava_id], service_attr
+        )
+        gear_service.service_date = service_date
+
+        # Calculate gear service time/distance with updated date
+        self.recalc_gear_service()
 
     async def fetch_ride_activities(self):
         """Fetch ride activities from the Strava API, using adding found gear to the list."""
@@ -136,6 +165,9 @@ class StravaAPI:
         json_data = json.loads(await activities_response.text())
         for activity in json_data:
             self._strava_athlete_id = int(activity["athlete"]["id"])
+
+        # start with an empty list of activities
+        self._strava_ride_activities = []
 
         # Create a list of ride activities only
         for idx, activity in enumerate(json_data):
@@ -183,35 +215,62 @@ class StravaAPI:
             gear.ha_id = name
             gear.distance = int(json_gear["distance"] / 1000)
 
-    def calc_gear_service(self):
+    def recalc_gear_service(self):
         """Calculate gear service times and distances from loaded activities."""
-        # Make sure the gear dict contains all gear from ride activities
+
+        # Clear all service counters ready to reload from activities
+        for gear_id in self._strava_ride_gear:
+            self._strava_ride_gear[gear_id].clear_counters()
+
+        # For every activity, ask the gear to process the usage
         for a in self._strava_ride_activities:
             gear_id = a["gear_id"]
 
             # activity date and time
-            act_date = dt.strptime(a["start_date_local"], "%Y-%m-%dT%H:%M:%SZ")
+            act_date = dt_parse(a["start_date"])
             distance = round(a["distance"] / 1000, 1)
             moving_time = round(a["moving_time"] / 3600, 2)
 
             # Add the activity distance and time to the gear
-            self._strava_ride_gear[gear_id].add_activity(
+            self._strava_ride_gear[gear_id].process_activity(
                 act_date, distance, moving_time
             )
 
-    def _calc_weekly_strava_stats(self):
+    def create_gear_data(self):
+        """Create a dictionary of gear data including service for HA entities."""
+
+        # Create a single dictionary of key:value pairs for gear
+        stats = {}
+        ids = {}
+        for strava_id, gear in self._strava_ride_gear.items():
+            ha_id = gear.ha_id
+            ids[ha_id] = {"name": gear.name, "strava_id": strava_id}
+            stats[ha_id + "_distance"] = {"distance": gear.distance}
+            for key in GEAR_SERVICE_KEYS:
+                prefix = ha_id + "_" + key
+                service: CycleGearService = getattr(gear, key)
+                stats[prefix] = {
+                    "time": int(round(service.time, 0)),
+                    "distance": int(round(service.distance, 0)),
+                    "service_date": service.service_date,
+                }
+
+        return {"ids": ids, "stats": stats}
+
+    def create_weekly_data(self):
+        """Create a dictionary of weekly strava stats for HA entities."""
         weekly_data: dict = {}
 
         for mon_date in self._last_2years_mondays():
             weekly_data[mon_date] = {"distance": 0, "time": 0, "elevation": 0}
             for a in self._strava_ride_activities:
-                # activity date and time
-                act_date = dt.strptime(a["start_date_local"], "%Y-%m-%dT%H:%M:%SZ")
+                # activity date and time, use the local date because we dont want year, month, day to be in local time (not utc)
+                act_date = dt_parse(a["start_date_local"])
+                act_date = date(act_date.year, act_date.month, act_date.day)
                 distance = round(a["distance"] / 1000, 1)
                 moving_time = round(a["moving_time"] / 3600, 2)
 
                 #  increment weekly info
-                act_date = date(act_date.year, act_date.month, act_date.day)
                 if act_date >= mon_date and act_date < mon_date + timedelta(7):
                     weekly_data[mon_date]["distance"] += distance
                     weekly_data[mon_date]["time"] += moving_time
@@ -246,68 +305,20 @@ class StravaAPI:
         return {"last_week": last_week, "this_week": this_week}
 
     async def fetch_strava_data(self):
-        """
-        Fetches data for the latest activities from the Strava API
-        """
+        """Fetch data for the latest activities from the Strava API."""
 
+        # Fetch activity and gear from strava api
         await self.fetch_ride_activities()
-        self.calc_gear_service()
-
-        # _LOGGER.debug("Fetching Data from Strava API")
-
-        # activities_response = await self.oauth_websession.async_request(
-        #    method="GET",
-        #    url=f"https://www.strava.com/api/v3/athlete/activities?per_page={MAX_NB_ACTIVITIES}",
-        # )
-
-        # if activities_response.status == 200:
-        # json_data = json.loads(await activities_response.text())
-        # athlete_id = None
-        # for activity in json_data:
-        #    athlete_id = int(activity["athlete"]["id"])
-
-        # Create a list of ride activities only
-        # activities = []
-        # for idx, activity in enumerate(json_data):
-        #    if activity["type"] != "Ride":
-        #        continue
-
-        #    activities.append(activity)
-
-        # gear_list = dict()
-
-        # for a in activities:
-        #    gear_id = a["gear_id"]
-
-        # Check if this gear id has been found already, if not setup
-        #    if not gear_id in gear_list.keys():
-        #        gear_list[gear_id] = self._create_gear(gear_id)
-
-        # activity date and time
-        #    act_date = dt.strptime(a["start_date_local"], "%Y-%m-%dT%H:%M:%SZ")
-
-        #    distance = round(a["distance"] / 1000, 1)
-        #    moving_time = round(a["moving_time"] / 3600, 2)
-
-        # For each sevice type, increment km if after start date
-        #    for key in GEAR_SERVICE_KEYS:
-        #        start_date = gear_list[gear_id][key]["start_date"]
-        #        if act_date >= start_date:
-        #            gear_list[gear_id][key]["distance"] += distance
-        #            gear_list[gear_id][key]["time"] += moving_time
-        # match description.device_class:
-        #    case SensorDeviceClass.DURATION:
-        #        gear_list[gear_id][description.key]["total"] += (
-        #            moving_time
-        #        )
-        #    case SensorDeviceClass.DISTANCE:
-        #        gear_list[gear_id][description.key]["total"] += (
-        #            distance
-        #        )
-
         await self.fetch_gear_information()
 
-        weekly_stats = self._calc_weekly_strava_stats()
+        # Clear and recalculate gear service counters
+        self.recalc_gear_service()
+
+        # Create weekly data for entities
+        weekly_stats = self.create_weekly_data()
+
+        # Create gear data for entities
+        gear_data = self.create_gear_data()
 
         # fetch summary stats
         summary_stats_url = (
@@ -341,60 +352,14 @@ class StravaAPI:
             if "elevation" in k:
                 summary_stats[k] = int(v)
 
-        # Create a single dictionary of key:value pairs for gear
-        gear_stats = {}
-        gear_ids = {}
-        for k, v in self._strava_ride_gear.items():
-            ha_id = v.ha_id
-            gear_ids[ha_id] = v.name
-            gear_stats[ha_id + "_distance"] = {"distance": v.distance}
-            for key in GEAR_SERVICE_KEYS:
-                prefix = ha_id + "_" + key
-                gear_stats[prefix] = {
-                    "time": int(round(getattr(v, key).time, 0)),
-                    "distance": int(round(getattr(v, key).distance, 0)),
-                }
-                gear_stats[prefix + "_date"] = getattr(v, key).service_date
-
-        # elif activities_response.status == 429:
-        #    _LOGGER.warn("Strava API rate limit has been reached")
-        #    return
-
-        # else:
-        #    _LOGGER.error(
-        #        f"Could not fetch strava activities (response code: {activities_response.status}): {await activities_response.text()}"
-        #    )
-        #    return
-
         _LOGGER.debug("Strava statistics updated from API")
 
-        pprint.pprint(gear_ids)
-        pprint.pprint(gear_stats)
-
-        data = {
-            # "activities": activities,
+        return {
             "summary_stats": summary_stats,
             "weekly_stats": weekly_stats,
-            "gear_ids": gear_ids,
-            "gear_stats": gear_stats,
+            "gear_ids": gear_data["ids"],
+            "gear_stats": gear_data["stats"],
         }
-
-        return data
-
-    def _create_gear(self, id):
-        gear = {
-            "name": "Name Not Found; ID:" + id,
-            "distance": 0,
-        }
-
-        for key in GEAR_SERVICE_KEYS:
-            gear[key] = {
-                "start_date": dt(2024, 8, 1, 13, 0, 0),
-                "distance": 0,
-                "time": 0,
-            }
-
-        return gear
 
     def _last_2years_mondays(self):
         d = date(date.today().year - 1, 1, 1)

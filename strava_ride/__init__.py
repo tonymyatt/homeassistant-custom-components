@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime as dt
+from datetime import datetime
 import logging
-import pprint
 
 import voluptuous as vol
 
@@ -14,17 +13,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_entry_oauth2_flow, config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import dt as dt_util
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from . import config_flow
-from .const import (
-    DOMAIN,
-    GEAR_SERVICE_KEYS,
-    OAUTH2_AUTHORIZE,
-    OAUTH2_TOKEN,
-    SCAN_INTERVAL,
-)
+from .const import DOMAIN, OAUTH2_AUTHORIZE, OAUTH2_TOKEN, SCAN_INTERVAL
 from .strava_api import StravaAPI
 
 CONFIG_SCHEMA = vol.Schema(
@@ -42,7 +34,7 @@ CONFIG_SCHEMA = vol.Schema(
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
-PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.SENSOR]  # , Platform.DATETIME
+PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.DATETIME, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -74,19 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await session.async_ensure_token_valid()
 
-    # async def async_update_data():
-    #    strava = StravaAPI(session)
-    #    return await strava.fetch_strava_data()
-
     coordinator = StravaCoordinator(hass, session)
-
-    #    hass,
-    #    _LOGGER,
-    #    name="Strava Ride",
-    #    update_method=async_update_data,
-    #    update_interval=SCAN_INTERVAL,
-    # )
-
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})
@@ -108,7 +88,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class StravaCoordinator(DataUpdateCoordinator):
     """Class to manage strava data fetching and gear management."""
 
-    _device: DeviceInfo
+    _gear_service_dates_restored = False
+    _devices: dict[str, DeviceInfo]
 
     def __init__(self, hass, session) -> None:
         """Initialize strava coorindator with oauth session."""
@@ -121,7 +102,8 @@ class StravaCoordinator(DataUpdateCoordinator):
         )
 
         self._strava_api = StravaAPI(session)
-        self._device = DeviceInfo(
+        self._devices = {}
+        self._devices["None"] = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, session.config_entry.data[CONF_CLIENT_ID])},
             manufacturer="Strava",
@@ -129,17 +111,41 @@ class StravaCoordinator(DataUpdateCoordinator):
             name=self.name,
         )
 
-        current_state = self.hass.states.get("datetime.propel_2024_service_dist_1_date")
-        pprint.pprint(current_state)
+    def get_device(self, gear_id: str = "None"):
+        """Get the device for the given gear_id, if not found or none, return statistics device."""
+        if gear_id in self._devices:
+            return self._devices[gear_id]
+        return self._devices["None"]
 
-    def get_device(self):
-        return self._device
+    def update_gear_devices(self, data: dict[str, list[str]]):
+        """Make sure all the given gear id/names have devices loaded."""
+        for k, v in data.items():
+            if k in self._devices:
+                continue
+            self._devices[k] = DeviceInfo(
+                entry_type=DeviceEntryType.SERVICE,
+                identifiers={(DOMAIN, k)},
+                manufacturer="Strava Gear",
+                model=f"Bike: {v["name"]}",
+                name=v["name"],
+            )
 
     async def _async_update_data(self):
-        return await self._strava_api.fetch_strava_data()
+        data = await self._strava_api.fetch_strava_data()
 
-    async def reset_gear_service(self, service_key):
-        await self._strava_api.set_gear_service_date(
-            service_key, dt.now(tz=dt_util.get_default_time_zone())
-        )
-        self.async_request_refresh()
+        # Whenever we do an update, make sure all gear devices have been created,
+        # this will be called once before entities are loaded, so entities
+        # will get a device for each gear (bike)
+        self.update_gear_devices(data["gear_ids"])
+        return data
+
+    async def set_gear_service_date(self, strava_id, service_attr, value: datetime):
+        """Reset the gear service counters for the given strava_id and service attribute."""
+        await self._strava_api.set_gear_service_date(strava_id, service_attr, value)
+
+        # Recalcualte and reload gear_stats into the data object for entities
+        gear_data = self._strava_api.create_gear_data()
+        self.data["gear_stats"] = gear_data["stats"]
+
+        # Trigger a refesh of all entities as listeners of this coorindator
+        self.async_update_listeners()

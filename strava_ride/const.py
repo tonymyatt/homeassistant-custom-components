@@ -48,7 +48,6 @@ GEAR_RESET_ENTITIES: tuple[ButtonEntityDescription] = (
         key="service_dist_4",
         name="Shop Service Completed",
         icon="mdi:autorenew",
-        entity_registry_enabled_default=False,
     ),
     ButtonEntityDescription(
         key="service_dist_5",
@@ -68,52 +67,51 @@ GEAR_RESET_ENTITIES: tuple[ButtonEntityDescription] = (
     ),
     ButtonEntityDescription(
         key="service_time_3",
-        name="Shop Service Completed",
+        name="Bar Tape Changed",
         icon="mdi:autorenew",
     ),
 )
 
 GEAR_DATETIME_ENTITIES: tuple[DateTimeEntityDescription] = (
     DateTimeEntityDescription(
-        key="service_dist_1_date",
+        key="service_dist_1",
         name="Chain Last Service",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_2_date",
+        key="service_dist_2",
         name="Front Tyre Last Change",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_3_date",
+        key="service_dist_3",
         name="Rear Tyre Last Change",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_4_date",
-        name="Shop Service Distance",
+        key="service_dist_4",
+        name="Shop Service Date",
+        icon="mdi:calendar-check",
+    ),
+    DateTimeEntityDescription(
+        key="service_dist_5",
+        name="Spare Distance Service Date",
         icon="mdi:calendar-check",
         entity_registry_enabled_default=False,
     ),
     DateTimeEntityDescription(
-        key="service_dist_5_date",
-        name="Spare Distance",
-        icon="mdi:calendar-check",
-        entity_registry_enabled_default=False,
-    ),
-    DateTimeEntityDescription(
-        key="service_time_1_date",
-        name="Minor Service Time",
+        key="service_time_1",
+        name="Last Minor Service",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_time_2_date",
-        name="Major Service Time",
+        key="service_time_2",
+        name="Last Major Service",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_time_3_date",
-        name="Shop Service Time",
+        key="service_time_3",
+        name="Bar Tape Last Changed",
         icon="mdi:calendar-check",
     ),
 )
@@ -153,11 +151,10 @@ GEAR_SENSOR_ENTITIES: tuple[SensorEntityDescription] = (
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:bike",
         device_class=SensorDeviceClass.DISTANCE,
-        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="service_dist_5",
-        name="Spare Distance",
+        name="Spare Service Distance",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:bike",
         device_class=SensorDeviceClass.DISTANCE,
@@ -168,21 +165,18 @@ GEAR_SENSOR_ENTITIES: tuple[SensorEntityDescription] = (
         name="Minor Service Time",
         native_unit_of_measurement=UnitOfTime.HOURS,
         icon="mdi:timer-cog-outline",
-        # device_class=SensorDeviceClass.DURATION,
     ),
     SensorEntityDescription(
         key="service_time_2",
         name="Major Service Time",
         native_unit_of_measurement=UnitOfTime.HOURS,
         icon="mdi:wrench-clock-outline",
-        # evice_class=SensorDeviceClass.DURATION,
     ),
     SensorEntityDescription(
         key="service_time_3",
-        name="Shop Service Time",
+        name="Bar Tape Time",
         native_unit_of_measurement=UnitOfTime.HOURS,
         icon="mdi:wrench-clock-outline",
-        # device_class=SensorDeviceClass.DURATION,
     ),
 )
 
