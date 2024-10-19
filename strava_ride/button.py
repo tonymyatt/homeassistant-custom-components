@@ -56,16 +56,18 @@ class GearServiceResetCommand(CoordinatorEntity, ButtonEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self.object_name = f"{entity_name}_{description.key}_reset"
-        self.gear_service_attr = description.key
-        self.gear_strava_id = strava_id
         self._attr_name = f"{name} {description.name}"
         self._attr_unique_id = f"{entity_name}_{description.key}_reset"
         self._attr_device_info = self.coordinator.get_device(entity_name)
+
+        # Get last character as index in gear service list
+        self.gear_service_index = int(description.key[-1])
+        self.gear_strava_id = strava_id
 
     async def async_press(self):
         """Handle the button press."""
         await self.coordinator.set_gear_service_date(
             self.gear_strava_id,
-            self.gear_service_attr,
+            self.gear_service_index,
             datetime.now(tz=dt_util.get_default_time_zone()),
         )

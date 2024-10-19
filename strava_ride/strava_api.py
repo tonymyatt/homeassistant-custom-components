@@ -3,16 +3,13 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 import json
 import logging
-import pprint
 
 from dateutil.parser import parse as dt_parse
 
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.util import dt as dt_util
 
-from .const import GEAR_SERVICE_KEYS, MAX_NB_ACTIVITIES
+from .const import MAX_GEAR_SERVICE_ITEMS, MAX_NB_ACTIVITIES
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -47,51 +44,29 @@ class CycleGear:
     name: str = "Unknown Name"
     ha_id: str = None
     distance: int = 0
-    service_dist_1: CycleGearService
-    service_dist_2: CycleGearService
-    service_dist_3: CycleGearService
-    service_dist_4: CycleGearService
-    service_dist_5: CycleGearService
-    service_time_1: CycleGearService
-    service_time_2: CycleGearService
-    service_time_3: CycleGearService
+    service = [CycleGearService]
 
     def __init__(self) -> None:
         """Create a cycle gear object."""
-        self.service_dist_1 = CycleGearService()
-        self.service_dist_2 = CycleGearService()
-        self.service_dist_3 = CycleGearService()
-        self.service_dist_4 = CycleGearService()
-        self.service_dist_5 = CycleGearService()
-        self.service_time_1 = CycleGearService()
-        self.service_time_2 = CycleGearService()
-        self.service_time_3 = CycleGearService()
+        self.service = []
+        for idx in range(MAX_GEAR_SERVICE_ITEMS):
+            self.service.insert(idx, CycleGearService())
 
     def clear_counters(self):
         """Clear all service counters."""
-        self.service_dist_1.clear_counters()
-        self.service_dist_2.clear_counters()
-        self.service_dist_3.clear_counters()
-        self.service_dist_4.clear_counters()
-        self.service_dist_5.clear_counters()
-        self.service_time_1.clear_counters()
-        self.service_time_2.clear_counters()
-        self.service_time_3.clear_counters()
+        # for s in self.service:
+        #    s.clear_counters()
+        for idx in range(MAX_GEAR_SERVICE_ITEMS):
+            self.service[idx].clear_counters()
 
     def process_activity(self, act_date: datetime, act_dist: int, act_time: int):
         """Add an activities distance time to service items, dependant on date."""
-        self.service_dist_1.process_activity(act_date, act_dist, act_time)
-        self.service_dist_2.process_activity(act_date, act_dist, act_time)
-        self.service_dist_3.process_activity(act_date, act_dist, act_time)
-        self.service_dist_4.process_activity(act_date, act_dist, act_time)
-        self.service_dist_5.process_activity(act_date, act_dist, act_time)
-        self.service_time_1.process_activity(act_date, act_dist, act_time)
-        self.service_time_2.process_activity(act_date, act_dist, act_time)
-        self.service_time_3.process_activity(act_date, act_dist, act_time)
+        for idx in range(MAX_GEAR_SERVICE_ITEMS):
+            self.service[idx].process_activity(act_date, act_dist, act_time)
 
     def __repr__(self) -> str:
         """Create string representation."""
-        return f"CycleGear {self.name} {self.service_dist_1} {self.service_dist_2} {self.service_dist_3} {self.service_dist_4} {self.service_dist_5} {self.service_time_1} {self.service_time_2} {self.service_time_3}"
+        return f"CycleGear {self.name} {self.service}"
 
 
 class CycleWeekStats:
@@ -127,12 +102,16 @@ class StravaAPI:
         self.oauth_websession = oauth_websession
 
     async def set_gear_service_date(
-        self, strava_id: str, service_attr: str, service_date: datetime
+        self, strava_id: str, service_index: int, service_date: datetime
     ):
         """Set the service date of the strava_id gear for the given service attribute."""
-        gear_service: CycleGearService = getattr(
-            self._strava_ride_gear[strava_id], service_attr
-        )
+        # gear_service: CycleGearService = getattr(
+        #    self._strava_ride_gear[strava_id], service_attr
+        # )
+        # )
+        gear_service: CycleGearService = self._strava_ride_gear[strava_id].service[
+            service_index
+        ]
         gear_service.service_date = service_date
 
         # Calculate gear service time/distance with updated date
@@ -246,9 +225,10 @@ class StravaAPI:
             ha_id = gear.ha_id
             ids[ha_id] = {"name": gear.name, "strava_id": strava_id}
             stats[ha_id + "_distance"] = {"distance": gear.distance}
-            for key in GEAR_SERVICE_KEYS:
-                prefix = ha_id + "_" + key
-                service: CycleGearService = getattr(gear, key)
+            for idx in range(MAX_GEAR_SERVICE_ITEMS):
+                prefix = f"{ha_id}_service_gear_{idx}"
+                # service: CycleGearService = getattr(gear, key)
+                service: CycleGearService = gear.service[idx]
                 stats[prefix] = {
                     "time": int(round(service.time, 0)),
                     "distance": int(round(service.distance, 0)),

@@ -41,7 +41,7 @@ async def async_setup_entry(
 
 
 class GearServiceDateTime(CoordinatorEntity, DateTimeEntity, RestoreEntity):
-    """Strava Gear Last Service Datetime"""
+    """Strava Gear Last Service Datetime."""
 
     def __init__(
         self,
@@ -55,11 +55,13 @@ class GearServiceDateTime(CoordinatorEntity, DateTimeEntity, RestoreEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self.object_name = f"{entity_name}_{description.key}"
-        self.gear_service_attr = description.key
-        self.gear_strava_id = strava_id
         self._attr_name = f"{name} {description.name}"
         self._attr_unique_id = f"{entity_name}_{description.key}"
         self._attr_device_info = self.coordinator.get_device(entity_name)
+
+        # Get last character as index in gear service list
+        self.gear_service_index = int(description.key[-1])
+        self.gear_strava_id = strava_id
 
     @property
     def native_value(self) -> datetime | None:
@@ -74,7 +76,7 @@ class GearServiceDateTime(CoordinatorEntity, DateTimeEntity, RestoreEntity):
         """Change the date/time."""
         await self.coordinator.set_gear_service_date(
             self.gear_strava_id,
-            self.gear_service_attr,
+            self.gear_service_index,
             value,
         )
 
@@ -89,5 +91,5 @@ class GearServiceDateTime(CoordinatorEntity, DateTimeEntity, RestoreEntity):
         prev_date = dt_parse(state.state)
 
         await self.coordinator.set_gear_service_date(
-            self.gear_strava_id, self.gear_service_attr, prev_date
+            self.gear_strava_id, self.gear_service_index, prev_date
         )

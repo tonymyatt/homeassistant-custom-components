@@ -91,7 +91,11 @@ class StravaCoordinator(DataUpdateCoordinator):
     _gear_service_dates_restored = False
     _devices: dict[str, DeviceInfo]
 
-    def __init__(self, hass, session) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        session: config_entry_oauth2_flow.AbstractOAuth2FlowHandler,
+    ) -> None:
         """Initialize strava coorindator with oauth session."""
 
         super().__init__(
@@ -139,9 +143,11 @@ class StravaCoordinator(DataUpdateCoordinator):
         self.update_gear_devices(data["gear_ids"])
         return data
 
-    async def set_gear_service_date(self, strava_id, service_attr, value: datetime):
+    async def set_gear_service_date(
+        self, strava_id: str, service_index: int, value: datetime
+    ):
         """Reset the gear service counters for the given strava_id and service attribute."""
-        await self._strava_api.set_gear_service_date(strava_id, service_attr, value)
+        await self._strava_api.set_gear_service_date(strava_id, service_index, value)
 
         # Recalcualte and reload gear_stats into the data object for entities
         gear_data = self._strava_api.create_gear_data()

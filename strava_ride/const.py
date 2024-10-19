@@ -2,9 +2,9 @@
 
 from datetime import timedelta
 
+from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.components.datetime import DateTimeEntityDescription
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
-from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.const import PERCENTAGE, UnitOfLength, UnitOfTime
 
 DOMAIN = "strava_ride"
@@ -16,57 +16,47 @@ OAUTH2_AUTHORIZE = "https://www.strava.com/oauth/authorize"
 OAUTH2_TOKEN = "https://www.strava.com/oauth/token"
 
 MAX_NB_ACTIVITIES = 200
-
-GEAR_SERVICE_KEYS: tuple[str] = (
-    "service_dist_1",
-    "service_dist_2",
-    "service_dist_3",
-    "service_dist_4",
-    "service_dist_5",
-    "service_time_1",
-    "service_time_2",
-    "service_time_3",
-)
+MAX_GEAR_SERVICE_ITEMS = 10
 
 GEAR_RESET_ENTITIES: tuple[ButtonEntityDescription] = (
     ButtonEntityDescription(
-        key="service_dist_1",
+        key="service_gear_0",
         name="Chain Serviced",
         icon="mdi:autorenew",
     ),
     ButtonEntityDescription(
-        key="service_dist_2",
+        key="service_gear_1",
         name="Front Tyre Changed",
         icon="mdi:autorenew",
     ),
     ButtonEntityDescription(
-        key="service_dist_3",
+        key="service_gear_2",
         name="Rear Tyre Changed",
         icon="mdi:autorenew",
     ),
     ButtonEntityDescription(
-        key="service_dist_4",
+        key="service_gear_3",
         name="Shop Service Completed",
         icon="mdi:autorenew",
     ),
     ButtonEntityDescription(
-        key="service_dist_5",
+        key="service_gear_4",
         name="Spare Distance Service Completed",
         icon="mdi:autorenew",
         entity_registry_enabled_default=False,
     ),
     ButtonEntityDescription(
-        key="service_time_1",
+        key="service_gear_5",
         name="Minor Service Completed",
         icon="mdi:autorenew",
     ),
     ButtonEntityDescription(
-        key="service_time_2",
+        key="service_gear_6",
         name="Major Service Completed",
         icon="mdi:autorenew",
     ),
     ButtonEntityDescription(
-        key="service_time_3",
+        key="service_gear_7",
         name="Bar Tape Changed",
         icon="mdi:autorenew",
     ),
@@ -74,43 +64,43 @@ GEAR_RESET_ENTITIES: tuple[ButtonEntityDescription] = (
 
 GEAR_DATETIME_ENTITIES: tuple[DateTimeEntityDescription] = (
     DateTimeEntityDescription(
-        key="service_dist_1",
+        key="service_gear_0",
         name="Chain Last Service",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_2",
+        key="service_gear_1",
         name="Front Tyre Last Change",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_3",
+        key="service_gear_2",
         name="Rear Tyre Last Change",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_4",
+        key="service_gear_3",
         name="Shop Service Date",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_dist_5",
+        key="service_gear_4",
         name="Spare Distance Service Date",
         icon="mdi:calendar-check",
         entity_registry_enabled_default=False,
     ),
     DateTimeEntityDescription(
-        key="service_time_1",
+        key="service_gear_5",
         name="Last Minor Service",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_time_2",
+        key="service_gear_6",
         name="Last Major Service",
         icon="mdi:calendar-check",
     ),
     DateTimeEntityDescription(
-        key="service_time_3",
+        key="service_gear_7",
         name="Bar Tape Last Changed",
         icon="mdi:calendar-check",
     ),
@@ -125,35 +115,35 @@ GEAR_SENSOR_ENTITIES: tuple[SensorEntityDescription] = (
         device_class=SensorDeviceClass.DISTANCE,
     ),
     SensorEntityDescription(
-        key="service_dist_1",
+        key="service_gear_0",
         name="Chain Distance",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:link-variant",
         device_class=SensorDeviceClass.DISTANCE,
     ),
     SensorEntityDescription(
-        key="service_dist_2",
+        key="service_gear_1",
         name="Front Tyre Distance",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:tire",
         device_class=SensorDeviceClass.DISTANCE,
     ),
     SensorEntityDescription(
-        key="service_dist_3",
+        key="service_gear_2",
         name="Rear Tyre Distance",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:tire",
         device_class=SensorDeviceClass.DISTANCE,
     ),
     SensorEntityDescription(
-        key="service_dist_4",
+        key="service_gear_3",
         name="Shop Service Distance",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:bike",
         device_class=SensorDeviceClass.DISTANCE,
     ),
     SensorEntityDescription(
-        key="service_dist_5",
+        key="service_gear_4",
         name="Spare Service Distance",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:bike",
@@ -161,19 +151,19 @@ GEAR_SENSOR_ENTITIES: tuple[SensorEntityDescription] = (
         entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
-        key="service_time_1",
+        key="service_gear_5",
         name="Minor Service Time",
         native_unit_of_measurement=UnitOfTime.HOURS,
         icon="mdi:timer-cog-outline",
     ),
     SensorEntityDescription(
-        key="service_time_2",
+        key="service_gear_6",
         name="Major Service Time",
         native_unit_of_measurement=UnitOfTime.HOURS,
         icon="mdi:wrench-clock-outline",
     ),
     SensorEntityDescription(
-        key="service_time_3",
+        key="service_gear_7",
         name="Bar Tape Time",
         native_unit_of_measurement=UnitOfTime.HOURS,
         icon="mdi:wrench-clock-outline",
