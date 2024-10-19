@@ -5,9 +5,14 @@ import logging
 
 from dateutil.parser import parse as dt_parse
 
-from homeassistant.components.datetime import DateTimeEntity, DateTimeEntityDescription
+from homeassistant.components.datetime import (
+    ENTITY_ID_FORMAT,
+    DateTimeEntity,
+    DateTimeEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import async_generate_entity_id
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import (
@@ -32,7 +37,14 @@ async def async_setup_entry(
         async_add_entities(
             [
                 GearServiceDateTime(
-                    coordinator, gear["name"], ha_id, gear["strava_id"], description
+                    coordinator,
+                    gear["name"],
+                    ha_id,
+                    async_generate_entity_id(
+                        ENTITY_ID_FORMAT, f"{ha_id}_{description.key}_date", hass=hass
+                    ),
+                    gear["strava_id"],
+                    description,
                 )
                 for description in GEAR_DATETIME_ENTITIES
             ],
@@ -47,17 +59,19 @@ class GearServiceDateTime(CoordinatorEntity, DateTimeEntity, RestoreEntity):
         self,
         coordinator: DataUpdateCoordinator,
         name: str,
-        entity_name: str,
+        device_id: str,
+        entity_id: str,
         strava_id: str,
         description: DateTimeEntityDescription,
     ) -> None:
         """Initialize the Strava sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self.object_name = f"{entity_name}_{description.key}"
+        self.entity_id = entity_id
+        self.object_name = f"{device_id}_{description.key}"
         self._attr_name = f"{name} {description.name}"
-        self._attr_unique_id = f"{entity_name}_{description.key}"
-        self._attr_device_info = self.coordinator.get_device(entity_name)
+        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_device_info = self.coordinator.get_device(device_id)
 
         # Get last character as index in gear service list
         self.gear_service_index = int(description.key[-1])

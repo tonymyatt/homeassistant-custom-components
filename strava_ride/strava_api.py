@@ -1,3 +1,5 @@
+"""Read data from Strava API for cycling."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -97,7 +99,7 @@ class StravaAPI:
     def __init__(
         self,
         oauth_websession: config_entry_oauth2_flow.OAuth2Session,
-    ):
+    ) -> None:
         """Init the Object."""
         self.oauth_websession = oauth_websession
 
