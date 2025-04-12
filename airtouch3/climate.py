@@ -3,23 +3,17 @@ import asyncio
 
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
+    #FanMode,  # For fan modes
+    ClimateEntityFeature,  # For support features
+    HVACMode,  # Import the enum class
     FAN_AUTO,
-    FAN_DIFFUSE,
-    FAN_FOCUS,
-    FAN_HIGH,
     FAN_LOW,
     FAN_MEDIUM,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_HEAT_COOL,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_OFF,
-    SUPPORT_FAN_MODE,
-    SUPPORT_TARGET_TEMPERATURE,
+    FAN_HIGH,
+    FAN_DIFFUSE,
+    FAN_FOCUS,
 )
-from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -45,11 +39,11 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 AT3_TO_HA_MODE = {
-    AT3AcMode.HEAT: HVAC_MODE_HEAT,
-    AT3AcMode.COOL: HVAC_MODE_COOL,
-    AT3AcMode.AUTO: HVAC_MODE_HEAT_COOL,
-    AT3AcMode.DRY: HVAC_MODE_DRY,
-    AT3AcMode.FAN: HVAC_MODE_FAN_ONLY,
+    AT3AcMode.HEAT: HVACMode.HEAT,
+    AT3AcMode.COOL: HVACMode.COOL,
+    AT3AcMode.AUTO: HVACMode.HEAT_COOL,
+    AT3AcMode.DRY: HVACMode.DRY,
+    AT3AcMode.FAN: HVACMode.FAN_ONLY,
 }
 
 HA_MODE_TO_AT = {value: key for key, value in AT3_TO_HA_MODE.items()}
@@ -69,12 +63,12 @@ HA_FAN_SPEED_TO_AT = {value: key for key, value in AT3_TO_HA_FAN_SPEED.items()}
 # POWER_OFF = 0
 
 AT3_HVAC_MODES = [
-    HVAC_MODE_OFF,
-    HVAC_MODE_COOL,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_HEAT_COOL,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_DRY,
+    HVACMode.OFF,
+    HVACMode.COOL,
+    HVACMode.HEAT,
+    HVACMode.HEAT_COOL,
+    HVACMode.FAN_ONLY,
+    HVACMode.DRY,
 ]
 
 # MAP_AC_FAN_MODE = {
@@ -145,7 +139,7 @@ class AT3GroupClimate(CoordinatorEntity, ClimateEntity):
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def current_temperature(self):
@@ -173,36 +167,36 @@ class AT3GroupClimate(CoordinatorEntity, ClimateEntity):
         is_on = self.coordinator.data["groups"][self._number]["is_on"]
         if is_on:
             if mode == AT3GroupMode.TEMPERATURE:
-                return HVAC_MODE_AUTO
+                return HVACMode.HEAT_COOL
             else:
-                return HVAC_MODE_FAN_ONLY
-        return HVAC_MODE_OFF
+                return HVACMode.FAN_ONLY
+        return HVACMode.OFF
 
     @property
     def hvac_modes(self):
         """Return the list of available operation modes."""
-        return [HVAC_MODE_AUTO, HVAC_MODE_FAN_ONLY, HVAC_MODE_OFF]
+        return [HVACMode.HEAT_COOL, HVACMode.FAN_ONLY, HVACMode.OFF]
 
     @property
     def supported_features(self):
         """Return the list of supported features."""
         mode = self.coordinator.data["groups"][self._number]["mode"]
         if mode == AT3GroupMode.TEMPERATURE:
-            return SUPPORT_TARGET_TEMPERATURE
+            return ClimateEntityFeature.TARGET_TEMPERATURE
         return 0
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
         is_on = self.coordinator.data["groups"][self._number]["is_on"]
         mode = self.coordinator.data["groups"][self._number]["mode"]
-        if hvac_mode == HVAC_MODE_OFF and is_on:
+        if hvac_mode == HVACMode.OFF and is_on:
             self._toggle()
-        elif hvac_mode == HVAC_MODE_AUTO or hvac_mode == HVAC_MODE_FAN_ONLY:
+        elif hvac_mode == HVACMode.HEAT_COOL or hvac_mode == HVACMode.FAN_ONLY:
             if not is_on:
                 self._toggle()
-            if hvac_mode == HVAC_MODE_AUTO and mode == AT3GroupMode.PERECENT:
+            if hvac_mode == HVACMode.HEAT_COOL and mode == AT3GroupMode.PERECENT:
                 self._toggle_mode()
-            if hvac_mode == HVAC_MODE_FAN_ONLY and mode == AT3GroupMode.TEMPERATURE:
+            if hvac_mode == HVACMode.FAN_ONLY and mode == AT3GroupMode.TEMPERATURE:
                 self._toggle_mode()
 
         await self.coordinator.async_refresh()
@@ -221,7 +215,7 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
     # Climate entity defined attributes
     _attr_fan_modes = [FAN_LOW, FAN_MEDIUM, FAN_HIGH]
     _attr_hvac_modes = AT3_HVAC_MODES
-    _attr_temperature_unit = TEMP_CELSIUS
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 1.0
 
     def __init__(self, coordinator, ac_unit: AT3AcUnit):
@@ -269,16 +263,16 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
 
         # Fan only
         if mode == AT3AcMode.FAN:
-            return SUPPORT_FAN_MODE
+            return ClimateEntityFeature.FAN_MODE
 
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_FAN_MODE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
 
     @property
     def hvac_mode(self):
         """Return hvac target hvac state."""
         ac_data = self.coordinator.data["ac_units"][self._number]
         if not ac_data["is_on"]:
-            return HVAC_MODE_OFF
+            return HVACMode.OFF
 
         return AT3_TO_HA_MODE[ac_data["mode"]]
 
@@ -290,7 +284,7 @@ class AT3AcUnitClimate(CoordinatorEntity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
-        if hvac_mode == HVAC_MODE_OFF:
+        if hvac_mode == HVACMode.OFF:
             await self.async_turn_off()
         else:
             mode = self._set_mode(HA_MODE_TO_AT[hvac_mode])

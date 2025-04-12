@@ -1,11 +1,9 @@
 import asyncio
 from homeassistant.components.cover import (
     ATTR_POSITION,
-    SUPPORT_CLOSE,
-    SUPPORT_OPEN,
-    SUPPORT_SET_POSITION,
     CoverDeviceClass,
     CoverEntity,
+    CoverEntityFeature,
 )
 
 from homeassistant.helpers.entity import DeviceInfo
@@ -75,17 +73,15 @@ class AirTouchGroupEntityAsCover(CoordinatorEntity, CoverEntity):
         """Flag supported features."""
         mode = self.coordinator.data["groups"][self._number]["mode"]
         if mode != AT3GroupMode.PERECENT:
-            return None
-        return SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_SET_POSITION
-
+            return 0
+        return CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.SET_POSITION
     @property
     def current_cover_position(self) -> int:
         """Return current position of cover."""
-
         return self.coordinator.data["groups"][self._number]["open_percent"]
 
     async def async_set_cover_position(self, **kwargs):
-        """Set the speed percentage of the fan."""
+        """Set the current position of cover."""
         percentage = kwargs[ATTR_POSITION]
 
         if percentage == self.current_cover_position:
